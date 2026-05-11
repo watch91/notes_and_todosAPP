@@ -4,16 +4,6 @@ import { useFocusEffect } from 'expo-router';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
-import { useAuth } from '@/contexts/AuthContext';
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  SlideInDown,
-  SlideOutDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
@@ -47,31 +37,16 @@ interface HomeItem {
 
 export default function HomePage() {
   const router = useSafeRouter();
-  const { token, user } = useAuth();
   const [items, setItems] = useState<HomeItem[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
 
-  // 检查登录状态
-  useFocusEffect(
-    useCallback(() => {
-      if (!token) {
-        router.replace('/auth');
-      }
-    }, [token, router])
-  );
-
   const fetchData = useCallback(async () => {
-    if (!token) return;
     try {
       const [notesRes, todosRes] = await Promise.all([
-        fetch(`${API_BASE}/api/v1/notes`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${API_BASE}/api/v1/todos`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        fetch(`${API_BASE}/api/v1/notes`),
+        fetch(`${API_BASE}/api/v1/todos`),
       ]);
       const notesData = await notesRes.json();
       const todosData = await todosRes.json();
@@ -98,7 +73,7 @@ export default function HomePage() {
     } catch (error) {
       console.error('Error fetching data:', error);
     }
-  }, [token]);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -114,10 +89,7 @@ export default function HomePage() {
 
   const handleDeleteNote = async (id: number) => {
     try {
-      await fetch(`${API_BASE}/api/v1/notes/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await fetch(`${API_BASE}/api/v1/notes/${id}`, { method: 'DELETE' });
       fetchData();
     } catch (error) {
       console.error('Error deleting note:', error);
@@ -128,10 +100,7 @@ export default function HomePage() {
     try {
       await fetch(`${API_BASE}/api/v1/todos/${todo.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_completed: !todo.is_completed }),
       });
       fetchData();
@@ -142,10 +111,7 @@ export default function HomePage() {
 
   const handleDeleteTodo = async (id: number) => {
     try {
-      await fetch(`${API_BASE}/api/v1/todos/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await fetch(`${API_BASE}/api/v1/todos/${id}`, { method: 'DELETE' });
       fetchData();
     } catch (error) {
       console.error('Error deleting todo:', error);
@@ -162,27 +128,17 @@ export default function HomePage() {
     return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
-  if (!token) {
-    return (
-      <Screen>
-        <View className="flex-1 items-center justify-center bg-background">
-          <Text className="text-muted">正在跳转...</Text>
-        </View>
-      </Screen>
-    );
-  }
-
   return (
     <Screen>
       <View className="flex-1 bg-background">
         {/* Header */}
-        <Animated.View entering={FadeInDown.delay(100).springify()} className="px-5 pt-4 pb-3">
+        <View className="px-5 pt-4 pb-3">
           <Text className="text-2xl font-bold text-foreground">我的记录</Text>
           <Text className="text-sm text-muted mt-1">记录生活点滴</Text>
-        </Animated.View>
+        </View>
 
         {/* Filter Tabs */}
-        <Animated.View entering={FadeInDown.delay(200).springify()} className="px-5 pb-3">
+        <View className="px-5 pb-3">
           <View className="flex-row gap-2">
             {[
               { key: 'all', label: '全部' },
@@ -200,7 +156,7 @@ export default function HomePage() {
               </TouchableOpacity>
             ))}
           </View>
-        </Animated.View>
+        </View>
 
         {/* Content List */}
         <ScrollView
@@ -211,89 +167,78 @@ export default function HomePage() {
           }
         >
           {filteredItems.length === 0 ? (
-            <Animated.View entering={FadeIn.delay(300)} className="items-center justify-center py-20">
+            <View className="items-center justify-center py-20">
               <FontAwesome6 name="clipboard" size={48} color="#d1d5db" />
               <Text className="text-muted mt-4">暂无内容</Text>
               <Text className="text-sm text-muted">点击下方按钮添加笔记或待办</Text>
-            </Animated.View>
+            </View>
           ) : (
             <View className="pb-24 gap-3">
-              {filteredItems.map((item, index) => (
-                <Animated.View
+              {filteredItems.map(item => (
+                <TouchableOpacity
                   key={`${item.type}-${item.id}`}
-                  entering={FadeInDown.delay(index * 50 + 200).springify()}
+                  onPress={() => {
+                    if (item.type === 'note') {
+                      router.push('/note-edit', { id: item.id, title: item.title, content: items.find(i => i.id === item.id && i.type === 'note')?.subtitle || '' });
+                    }
+                  }}
+                  className="bg-white rounded-2xl p-4 shadow-sm"
+                  style={{
+                    shadowColor: '#4F46E5',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.08,
+                    shadowRadius: 8,
+                    elevation: 2,
+                  }}
                 >
-                  <TouchableOpacity
-                    onPress={() => {
-                      if (item.type === 'note') {
-                        router.push('/note-edit', { id: item.id });
-                      }
-                    }}
-                    className="bg-white rounded-2xl p-4 shadow-sm"
-                    style={{
-                      shadowColor: '#4F46E5',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.08,
-                      shadowRadius: 8,
-                      elevation: 2,
-                    }}
-                  >
-                    <View className="flex-row items-start justify-between">
-                      <View className="flex-1">
-                        <View className="flex-row items-center gap-2">
-                          {item.type === 'note' ? (
-                            <View className="w-8 h-8 rounded-lg bg-indigo-100 items-center justify-center">
-                              <FontAwesome6 name="note-sticky" size={14} color="#4F46E5" />
-                            </View>
-                          ) : (
-                            <TouchableOpacity
-                              onPress={() => handleToggleTodo(item)}
-                              className="w-8 h-8 rounded-lg bg-emerald-100 items-center justify-center"
-                            >
-                              <FontAwesome6
-                                name={item.is_completed ? "check-circle" : "circle"}
-                                size={16}
-                                color={item.is_completed ? "#10B981" : "#9CA3AF"}
-                              />
-                            </TouchableOpacity>
-                          )}
-                          <Text
-                            className={`text-base font-medium flex-1 ${item.type === 'todo' && item.is_completed ? 'line-through text-muted' : 'text-foreground'}`}
-                            numberOfLines={1}
+                  <View className="flex-row items-start justify-between">
+                    <View className="flex-1">
+                      <View className="flex-row items-center gap-2">
+                        {item.type === 'note' ? (
+                          <View className="w-8 h-8 rounded-lg bg-indigo-100 items-center justify-center">
+                            <FontAwesome6 name="note-sticky" size={14} color="#4F46E5" />
+                          </View>
+                        ) : (
+                          <TouchableOpacity
+                            onPress={() => handleToggleTodo(item)}
+                            className="w-8 h-8 rounded-lg bg-emerald-100 items-center justify-center"
                           >
-                            {item.title}
-                          </Text>
-                        </View>
-                        {item.type === 'note' && item.subtitle && (
-                          <Text className="text-sm text-muted mt-2 ml-10" numberOfLines={2}>
-                            {item.subtitle}
-                          </Text>
+                            <FontAwesome6
+                              name={item.is_completed ? "check-circle" : "circle"}
+                              size={16}
+                              color={item.is_completed ? "#10B981" : "#9CA3AF"}
+                            />
+                          </TouchableOpacity>
                         )}
-                        <Text className="text-xs text-muted mt-2 ml-10">{formatDate(item.created_at)}</Text>
+                        <Text
+                          className={`text-base font-medium flex-1 ${item.type === 'todo' && item.is_completed ? 'line-through text-muted' : 'text-foreground'}`}
+                          numberOfLines={1}
+                        >
+                          {item.title}
+                        </Text>
                       </View>
-                      <TouchableOpacity
-                        onPress={() => item.type === 'note' ? handleDeleteNote(item.id) : handleDeleteTodo(item.id)}
-                        className="p-2 ml-2"
-                      >
-                        <FontAwesome6 name="trash" size={14} color="#EF4444" />
-                      </TouchableOpacity>
+                      {item.type === 'note' && item.subtitle && (
+                        <Text className="text-sm text-muted mt-2 ml-10" numberOfLines={2}>
+                          {item.subtitle}
+                        </Text>
+                      )}
+                      <Text className="text-xs text-muted mt-2 ml-10">{formatDate(item.created_at)}</Text>
                     </View>
-                  </TouchableOpacity>
-                </Animated.View>
+                    <TouchableOpacity
+                      onPress={() => item.type === 'note' ? handleDeleteNote(item.id) : handleDeleteTodo(item.id)}
+                      className="p-2 ml-2"
+                    >
+                      <FontAwesome6 name="trash" size={14} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
               ))}
             </View>
           )}
         </ScrollView>
 
         {/* FAB */}
-        <Animated.View
-          entering={FadeIn.delay(400)}
-          style={{
-            position: 'absolute',
-            bottom: 90,
-            right: 20,
-          }}
-        >
+        <View className="absolute bottom-8 right-5">
           <TouchableOpacity
             onPress={() => setModalVisible(true)}
             className="w-14 h-14 rounded-full bg-accent items-center justify-center shadow-lg"
@@ -307,7 +252,7 @@ export default function HomePage() {
           >
             <FontAwesome6 name="plus" size={24} color="white" />
           </TouchableOpacity>
-        </Animated.View>
+        </View>
 
         {/* Create Modal */}
         {modalVisible && (
@@ -316,11 +261,7 @@ export default function HomePage() {
             onPress={() => setModalVisible(false)}
             activeOpacity={1}
           >
-            <Animated.View
-              entering={SlideInDown.springify().damping(15)}
-              exiting={SlideOutDown.springify()}
-              className="w-full bg-white rounded-t-3xl p-6 pb-10"
-            >
+            <TouchableOpacity activeOpacity={1} onPress={undefined} className="w-full bg-white rounded-t-3xl p-6 pb-10">
               <View className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6" />
               <Text className="text-lg font-bold text-foreground mb-4">新建内容</Text>
               <View className="flex-row gap-3">
@@ -351,7 +292,7 @@ export default function HomePage() {
                   <Text className="text-xs text-muted mt-1">规划任务</Text>
                 </TouchableOpacity>
               </View>
-            </Animated.View>
+            </TouchableOpacity>
           </TouchableOpacity>
         )}
       </View>
