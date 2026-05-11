@@ -3,6 +3,20 @@ import { getSupabaseClient } from '../storage/database/supabase-client.js';
 
 const router = Router();
 
+// 搜索笔记（按标题模糊搜索）
+router.get('/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    const client = getSupabaseClient();
+    const { data, error } = await client.from('notes').select('*').ilike('title', `%${q}%`).order('updated_at', { ascending: false });
+    if (error) throw new Error(`搜索失败: ${error.message}`);
+    res.json({ success: true, data });
+  } catch (error: any) {
+    console.error('Error searching notes:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // 获取所有笔记
 router.get('/', async (req, res) => {
   try {

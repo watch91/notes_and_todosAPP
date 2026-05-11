@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, RefreshControl, TextInput } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
@@ -41,6 +41,8 @@ export default function HomePage() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<HomeItem[] | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -118,10 +120,38 @@ export default function HomePage() {
     }
   };
 
+  const handleSearch = async (text: string) => {
+    setSearchQuery(text);
+    if (!text.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/notes/search?q=${encodeURIComponent(text)}`);
+      const data = await res.json();
+      if (data.success) {
+        setSearchResults(data.data.map((n: Note) => ({
+          type: 'note' as ItemType,
+          id: n.id,
+          title: n.title,
+          subtitle: n.content?.substring(0, 50) || '无内容',
+          created_at: n.created_at,
+        })));
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+    }
+  };
+
   const filteredItems = items.filter(item => {
     if (filter === 'all') return true;
     return item.type === filter;
   });
+
+  const displayItems = searchResults !== null ? searchResults.filter(item => {
+    if (filter === 'all') return true;
+    return item.type === filter;
+  }) : filteredItems;
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -135,6 +165,26 @@ export default function HomePage() {
         <View className="px-5 pt-4 pb-3">
           <Text className="text-2xl font-bold text-foreground">我的记录</Text>
           <Text className="text-sm text-muted mt-1">记录生活点滴</Text>
+        </View>
+
+        {/* Search Bar */}
+        <View className="px-5 pb-3">
+          <View className="bg-white rounded-xl flex-row items-center px-3 py-2">
+            <FontAwesome6 name="magnifying-glass" size={16} color="#9CA3AF" />
+            <TextInput
+              value={searchQuery}
+              onChangeText={handleSearch}
+              placeholder="搜索笔记标题..."
+              placeholderTextColor="#9CA3AF"
+              className="flex-1 ml-2 text-foreground"
+              style={{ outline: 'none' }}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => handleSearch('')}>
+                <FontAwesome6 name="circle-xmark" size={16} color="#9CA3AF" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Filter Tabs */}
@@ -166,15 +216,15 @@ export default function HomePage() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          {filteredItems.length === 0 ? (
+          {displayItems.length === 0 ? (
             <View className="items-center justify-center py-20">
               <FontAwesome6 name="clipboard" size={48} color="#d1d5db" />
-              <Text className="text-muted mt-4">暂无内容</Text>
-              <Text className="text-sm text-muted">点击下方按钮添加笔记或待办</Text>
+              <Text className="text-muted mt-4">{searchQuery ? '未找到相关笔记' : '暂无内容'}</Text>
+              <Text className="text-sm text-muted">{searchQuery ? '尝试其他关键词' : '点击下方按钮添加笔记或待办'}</Text>
             </View>
           ) : (
             <View className="pb-24 gap-3">
-              {filteredItems.map(item => (
+              {displayItems.map(item => (
                 <TouchableOpacity
                   key={`${item.type}-${item.id}`}
                   onPress={() => {
