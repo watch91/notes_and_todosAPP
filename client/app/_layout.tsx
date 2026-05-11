@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LogBox } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { Provider } from '@/components/Provider';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 import '../global.css';
 
@@ -13,19 +14,23 @@ LogBox.ignoreLogs([
 export default function RootLayout() {
   return (
     <Provider>
-      <Stack
-        screenOptions={{
-          animation: 'slide_from_right',
-          gestureEnabled: true,
-          gestureDirection: 'horizontal',
-          headerShown: false
-        }}
-      >
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="note-edit" />
-        <Stack.Screen name="todo-edit" />
-      </Stack>
-      <Toast />
+      <AuthProvider>
+        <StatusBar style="auto" />
+        <Stack
+          screenOptions={{
+            animation: 'slide_from_right',
+            gestureEnabled: true,
+            gestureDirection: 'horizontal',
+            headerShown: false
+          }}
+        >
+          <Stack.Screen name="auth" options={{ animation: 'fade' }} />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="note-edit" />
+          <Stack.Screen name="todo-edit" />
+        </Stack>
+        <Toast />
+      </AuthProvider>
     </Provider>
   );
 }

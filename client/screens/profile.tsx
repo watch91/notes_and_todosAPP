@@ -1,18 +1,61 @@
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
+import { useAuth, User } from '@/contexts/AuthContext';
+import { useSafeRouter } from '@/hooks/useSafeRouter';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 export default function ProfilePage() {
+  const { user, token, logout, isLoading } = useAuth();
+  const router = useSafeRouter();
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isLoading && !token) {
+        router.replace('/auth');
+      }
+    }, [token, isLoading, router])
+  );
+
+  const handleLogout = () => {
+    Alert.alert(
+      '提示',
+      '确定要退出登录吗？',
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确定',
+          onPress: async () => {
+            await logout();
+            router.replace('/auth');
+          },
+        },
+      ]
+    );
+  };
+
+  if (!token) {
+    return (
+      <Screen>
+        <View className="flex-1 items-center justify-center bg-background">
+          <Text className="text-muted">正在跳转...</Text>
+        </View>
+      </Screen>
+    );
+  }
+
   return (
     <Screen>
       <View className="flex-1 bg-background">
         {/* Header */}
-        <View className="px-5 pt-4 pb-6">
+        <Animated.View entering={FadeInDown.springify()} className="px-5 pt-4 pb-6">
           <Text className="text-2xl font-bold text-foreground">个人中心</Text>
-        </View>
+        </Animated.View>
 
         {/* Profile Card */}
-        <View className="mx-5 bg-white rounded-2xl p-5 shadow-sm"
+        <Animated.View entering={FadeInDown.delay(100).springify()} className="mx-5 bg-white rounded-2xl p-5 shadow-sm"
           style={{
             shadowColor: '#4F46E5',
             shadowOffset: { width: 0, height: 2 },
@@ -25,15 +68,17 @@ export default function ProfilePage() {
             <View className="w-16 h-16 rounded-full bg-indigo-100 items-center justify-center">
               <FontAwesome6 name="user" size={28} color="#4F46E5" />
             </View>
-            <View className="ml-4">
-              <Text className="text-lg font-bold text-foreground">我的笔记</Text>
+            <View className="ml-4 flex-1">
+              <Text className="text-lg font-bold text-foreground">
+                {user?.email || '用户'}
+              </Text>
               <Text className="text-sm text-muted">记录生活每一刻</Text>
             </View>
           </View>
-        </View>
+        </Animated.View>
 
         {/* Menu Items */}
-        <View className="mx-5 mt-6 bg-white rounded-2xl overflow-hidden shadow-sm"
+        <Animated.View entering={FadeInDown.delay(200).springify()} className="mx-5 mt-6 bg-white rounded-2xl overflow-hidden shadow-sm"
           style={{
             shadowColor: '#4F46E5',
             shadowOffset: { width: 0, height: 2 },
@@ -42,7 +87,7 @@ export default function ProfilePage() {
             elevation: 2,
           }}
         >
-          <TouchableOpacity className="flex-row items-center px-5 py-4 border-b border-gray-100">
+          <View className="flex-row items-center px-5 py-4 border-b border-gray-100">
             <View className="w-10 h-10 rounded-xl bg-amber-50 items-center justify-center">
               <FontAwesome6 name="star" size={16} color="#F59E0B" />
             </View>
@@ -51,7 +96,7 @@ export default function ProfilePage() {
               <Text className="text-xs text-muted mt-0.5">版本 1.0.0</Text>
             </View>
             <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
-          </TouchableOpacity>
+          </View>
 
           <TouchableOpacity className="flex-row items-center px-5 py-4">
             <View className="w-10 h-10 rounded-xl bg-cyan-50 items-center justify-center">
@@ -63,7 +108,25 @@ export default function ProfilePage() {
             </View>
             <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
           </TouchableOpacity>
-        </View>
+        </Animated.View>
+
+        {/* Logout Button */}
+        <Animated.View entering={FadeInDown.delay(300).springify()} className="mx-5 mt-6">
+          <TouchableOpacity
+            onPress={handleLogout}
+            className="bg-white rounded-2xl p-4 flex-row items-center justify-center shadow-sm"
+            style={{
+              shadowColor: '#EF4444',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 8,
+              elevation: 2,
+            }}
+          >
+            <FontAwesome6 name="right-from-bracket" size={18} color="#EF4444" />
+            <Text className="ml-3 font-medium" style={{ color: '#EF4444' }}>退出登录</Text>
+          </TouchableOpacity>
+        </Animated.View>
 
         {/* Footer */}
         <View className="flex-1 items-center justify-end pb-10">

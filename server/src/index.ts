@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import notesRouter from "./routes/notes.js";
 import todosRouter from "./routes/todos.js";
+import authRouter from "./routes/auth.js";
+import uploadRouter from "./routes/upload.js";
 
 const app = express();
 const port = process.env.PORT || 9091;
@@ -20,6 +22,8 @@ app.get('/api/v1/health', (req, res) => {
 // Routes
 app.use('/api/v1/notes', notesRouter);
 app.use('/api/v1/todos', todosRouter);
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/upload', uploadRouter);
 
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}/`);
