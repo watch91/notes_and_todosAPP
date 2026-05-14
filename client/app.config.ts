@@ -67,8 +67,20 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           "microphonePermission": `笔记待办App需要访问麦克风以录制视频声音。`,
           "recordAudioAndroid": true
         }
+      ],
+      [
+        "expo-updates",
+        {
+          "developmentBehavior": "enabled",
+          "devtoolsEnabled": true
+        }
       ]
     ],
+    "updates": {
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 5000,
+      "url": "https://u.expo.dev/placeholder"
+    },
     "experiments": {
       "typedRoutes": true
     }
