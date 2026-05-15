@@ -1,45 +1,12 @@
-import { useEffect, useState } from 'react';
-import * as Updates from 'expo-updates';
-import { Alert } from 'react-native';
+import { useEffect } from 'react';
+import { Platform } from 'react-native';
 
 export function useAutoUpdate() {
-  const [isChecking, setIsChecking] = useState(false);
-
   useEffect(() => {
-    const checkForUpdates = async () => {
-      if (isChecking) return;
-      setIsChecking(true);
-      
-      try {
-        const update = await Updates.checkForUpdateAsync();
-        if (update?.isAvailable) {
-          Alert.alert(
-            '发现新版本',
-            '有新版本可用，是否立即更新？',
-            [
-              { text: '稍后', style: 'cancel' },
-              { 
-                text: '立即更新', 
-                onPress: async () => {
-                  try {
-                    await Updates.fetchUpdateAsync();
-                    await Updates.reloadAsync();
-                  } catch (e) {
-                    console.error('更新失败:', e);
-                  }
-                }
-              }
-            ]
-          );
-        }
-      } catch (e) {
-        // 静默处理更新检查错误
-      } finally {
-        setIsChecking(false);
-      }
-    };
-
-    // 应用加载时自动检查更新
-    checkForUpdates();
+    // 开发环境下 Metro 会自动热更新
+    // 生产环境需要配置 EAS Update 服务
+    if (Platform.OS === 'web') {
+      console.log('Web 环境: 刷新页面即可获取最新代码');
+    }
   }, []);
 }
