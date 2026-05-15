@@ -1,0 +1,44 @@
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { FontAwesome6 } from '@expo/vector-icons';
+import { Screen } from '@/components/Screen';
+import { useSafeRouter } from '@/hooks/useSafeRouter';
+
+const faqs = [
+  { q: '所有笔记和待办丢失了，新建笔记和待办也没反应，怎么办？', a: '在主界面下拉刷新，刷新完毕后即可恢复。' },
+  { q: '界面为异常的黑色怎么办？', a: '在手机设置中，将手机颜色主题改为亮色即可。' },
+];
+
+export default function HelpPage() {
+  const router = useSafeRouter();
+
+  return (
+    <Screen>
+      <View className="flex-1 bg-background">
+        <View className="px-5 pt-4 pb-3 flex-row items-center">
+          <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
+            <FontAwesome6 name="arrow-left" size={20} color="#374151" />
+          </TouchableOpacity>
+          <Text className="text-lg font-bold text-foreground ml-2">使用帮助</Text>
+        </View>
+        <ScrollView className="flex-1 px-5 py-4" showsVerticalScrollIndicator={false}>
+          {faqs.map((faq, i) => (
+            <View key={i} className="bg-white rounded-2xl p-4 mb-4" style={{ shadowColor: '#4F46E5', shadowOpacity: 0.08, shadowRadius: 8, elevation: 2 }}>
+              <View className="flex-row items-start">
+                <View className="w-8 h-8 rounded-full bg-amber-100 items-center justify-center">
+                  <FontAwesome6 name="circle-question" size={14} color="#F59E0B" />
+                </View>
+                <Text className="flex-1 ml-3 font-medium text-foreground">{faq.q}</Text>
+              </View>
+              <View className="flex-row items-start mt-3">
+                <View className="w-8 h-8 rounded-full bg-emerald-100 items-center justify-center">
+                  <FontAwesome6 name="check" size={14} color="#10B981" />
+                </View>
+                <Text className="flex-1 ml-3 text-sm text-muted">{faq.a}</Text>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    </Screen>
+  );
+}
