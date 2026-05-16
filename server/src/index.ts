@@ -21,6 +21,14 @@ app.get('/api/v1/health', (req, res) => {
 app.use('/api/v1/notes', notesRouter);
 app.use('/api/v1/todos', todosRouter);
 
+// 版本检查接口
+app.get('/api/v1/version', (req, res) => {
+  res.json({
+    new_version: '1.0.0',
+    download_url: 'https://your-apk-download-url.com/app.apk'
+  });
+});
+
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}/`);
 });

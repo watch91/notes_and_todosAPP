@@ -1,12 +1,34 @@
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { Alert, Linking, Platform } from 'react-native';
+import Constants from 'expo-constants';
+
+const CURRENT_VERSION = '1.0.0';
+const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
 export function useAutoUpdate() {
   useEffect(() => {
-    // 开发环境下 Metro 会自动热更新
-    // 生产环境需要配置 EAS Update 服务
-    if (Platform.OS === 'web') {
-      console.log('Web 环境: 刷新页面即可获取最新代码');
-    }
+    const checkVersion = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/version`);
+        const data = await res.json();
+        if (data.new_version && data.new_version !== CURRENT_VERSION) {
+          Alert.alert(
+            '发现新版本',
+            `检测到新版本 ${data.new_version}，是否立即更新？`,
+            [
+              { text: '稍后', style: 'cancel' },
+              { text: '立即更新', onPress: () => {
+                if (data.download_url) {
+                  Linking.openURL(data.download_url);
+                }
+              }}
+            ]
+          );
+        }
+      } catch (e) {
+        // 静默处理
+      }
+    };
+    checkVersion();
   }, []);
 }
