@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import notesRouter from "./routes/notes.js";
 import todosRouter from "./routes/todos.js";
+import versionRouter from "./routes/version.js";
 
 const app = express();
 const port = process.env.PORT || 9091;
@@ -20,14 +21,7 @@ app.get('/api/v1/health', (req, res) => {
 // Routes
 app.use('/api/v1/notes', notesRouter);
 app.use('/api/v1/todos', todosRouter);
-
-// 版本检查接口
-app.get('/api/v1/version', (req, res) => {
-  res.json({
-    new_version: '2.0.1',
-    download_url: 'https://www.coze.cn/s/UW6YTrylKa4/'
-  });
-});
+app.use('/api/v1/version', versionRouter);
 
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}/`);
