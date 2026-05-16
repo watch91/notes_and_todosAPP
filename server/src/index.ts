@@ -24,7 +24,7 @@ app.use('/api/v1/todos', todosRouter);
 // 版本检查接口
 app.get('/api/v1/version', (req, res) => {
   res.json({
-    new_version: '1.0.0',
+    new_version: '2.0.1',
     download_url: 'https://your-apk-download-url.com/app.apk'
   });
 });
