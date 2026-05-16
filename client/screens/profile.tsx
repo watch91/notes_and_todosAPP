@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
+import { APP_VERSION } from '@/utils/version';
 
 export default function ProfilePage() {
   const router = useSafeRouter();
@@ -47,7 +48,7 @@ export default function ProfilePage() {
             </View>
             <View className="flex-1 ml-3">
               <Text className="font-medium text-foreground">关于应用</Text>
-              <Text className="text-xs text-muted mt-0.5">版本 1.0.0</Text>
+              <Text className="text-xs text-muted mt-0.5">版本 {APP_VERSION}</Text>
             </View>
             <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
           </TouchableOpacity>
