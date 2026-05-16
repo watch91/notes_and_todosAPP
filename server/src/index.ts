@@ -25,7 +25,7 @@ app.use('/api/v1/todos', todosRouter);
 app.get('/api/v1/version', (req, res) => {
   res.json({
     new_version: '2.0.1',
-    download_url: 'https://your-apk-download-url.com/app.apk'
+    download_url: 'https://www.coze.cn/s/UW6YTrylKa4/'
   });
 });
 
