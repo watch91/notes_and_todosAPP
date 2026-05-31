@@ -73,7 +73,7 @@ export default function ProfilePage() {
             </View>
             <View className="flex-1 ml-3">
               <Text className="font-medium text-foreground">开发者模式</Text>
-              <Text className="text-xs text-muted mt-0.5">连续点击7次进入</Text>
+
             </View>
             <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
           </TouchableOpacity>
