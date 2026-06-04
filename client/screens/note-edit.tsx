@@ -113,7 +113,7 @@ export default function NoteEditPage() {
             onPress={handleAISummarize}
             className="p-2 -mr-2"
           >
-            <FontAwesome6 name="robot" size={20} color="#4F46E5" />
+            <FontAwesome6 name="wand-magic-sparkles" size={18} color="#4F46E5" /><Text className="text-xs text-indigo-600 ml-1">一键总结</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleSave}
@@ -173,7 +173,7 @@ export default function NoteEditPage() {
           <View className="flex-1 bg-black/50 justify-center items-center p-5">
             <View className="bg-white rounded-2xl w-full max-h-[70%] p-5">
               <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-lg font-bold text-foreground">AI 总结</Text>
+                <Text className="text-lg font-bold text-foreground">一键总结</Text>
                 <TouchableOpacity onPress={() => setAiModalVisible(false)}>
                   <FontAwesome6 name="xmark" size={20} color="#6B7280" />
                 </TouchableOpacity>
