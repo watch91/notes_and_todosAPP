@@ -47,6 +47,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="secret"
+        options={{
+          title: '小秘密',
+          tabBarIcon: ({ color }) => (
+            <FontAwesome6 name="lock" size={20} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: '我的',
