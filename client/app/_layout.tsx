@@ -9,6 +9,7 @@ import '../global.css';
 
 LogBox.ignoreLogs([
   "TurboModuleRegistry.getEnforcing(...): 'RNMapsAirModule' could not be found",
+  "useLinkPreviewContext must be used within a LinkPreviewContextProvider",
 ]);
 
 function UpdateChecker() {
