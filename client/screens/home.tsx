@@ -342,22 +342,6 @@ export default function HomePage() {
                   <Text className="text-xs text-muted mt-1">规划任务</Text>
                 </TouchableOpacity>
               </View>
-              <View className="flex-row gap-3 mt-3">
-                <TouchableOpacity
-                  onPress={() => {
-                    setModalVisible(false);
-                    router.push('/voice-note');
-                  }}
-                  className="flex-1 bg-orange-50 rounded-2xl p-5 items-center"
-                >
-                  <View className="w-12 h-12 rounded-xl bg-orange-500 items-center justify-center mb-3">
-                    <FontAwesome6 name="microphone" size={20} color="white" />
-                  </View>
-                  <Text className="font-medium text-foreground">听音速记</Text>
-                  <Text className="text-xs text-muted mt-1">语音转文字</Text>
-                </TouchableOpacity>
-                <View className="flex-1" />
-              </View>
             </TouchableOpacity>
           </TouchableOpacity>
         )}

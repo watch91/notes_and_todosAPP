@@ -9,7 +9,6 @@ import '../global.css';
 
 LogBox.ignoreLogs([
   "TurboModuleRegistry.getEnforcing(...): 'RNMapsAirModule' could not be found",
-  "useLinkPreviewContext must be used within a LinkPreviewContextProvider",
 ]);
 
 function UpdateChecker() {
@@ -34,7 +33,6 @@ export default function RootLayout() {
         <Stack.Screen name="todo-edit" />
         <Stack.Screen name="help" />
         <Stack.Screen name="dev-mode" />
-        <Stack.Screen name="voice-note" />
       </Stack>
       <Toast />
     </Provider>
