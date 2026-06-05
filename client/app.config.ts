@@ -67,6 +67,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           "microphonePermission": `笔记待办App需要访问麦克风以录制视频声音。`,
           "recordAudioAndroid": true
         }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": `允许笔记待办App访问您的麦克风，以便您录制语音笔记。`
+        }
       ]
     ],
     "experiments": {

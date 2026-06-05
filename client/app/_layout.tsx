@@ -33,6 +33,7 @@ export default function RootLayout() {
         <Stack.Screen name="todo-edit" />
         <Stack.Screen name="help" />
         <Stack.Screen name="dev-mode" />
+        <Stack.Screen name="voice-note" />
       </Stack>
       <Toast />
     </Provider>
