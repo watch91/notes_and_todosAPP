@@ -7,5 +7,7 @@
 
 
 储存前端软件当前软件版本号的路径：
-`/workspace/projects/client/utils/version.ts`
+```
+/workspace/projects/client/utils/version.ts
+```
 
