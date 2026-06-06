@@ -5,12 +5,12 @@ const router = express.Router();
 
 // 请配置你的邮箱 SMTP
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.example.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false,
+  host: process.env.SMTP_HOST || 'smtp.163.com',
+  port: parseInt(process.env.SMTP_PORT || '465'),
+  secure: true,
   auth: {
-    user: process.env.SMTP_USER || '',
-    pass: process.env.SMTP_PASS || '',
+    user: process.env.SMTP_USER || '13519497628@163.com',
+    pass: process.env.SMTP_PASS || 'UAp7uFATAY2qyVFA',
   },
 });
 
@@ -23,8 +23,8 @@ router.post('/', async (req, res) => {
     }
 
     const mailOptions = {
-      from: process.env.SMTP_USER || 'feedback@app.com',
-      to: process.env.FEEDBACK_EMAIL || 'your-email@example.com',
+      from: process.env.SMTP_USER || '13519497628@163.com',
+      to: process.env.FEEDBACK_EMAIL || '13519497628@163.com',
       subject: '【笔记应用】用户问题反馈',
       text: `用户反馈内容：\n\n${content.trim()}\n\n发送时间：${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}`,
     };
