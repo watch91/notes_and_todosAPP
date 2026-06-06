@@ -22,9 +22,18 @@ interface SecretTodo {
 
 const NOTES_KEY = 'secret_notes';
 const TODOS_KEY = 'secret_todos';
+const PASSWORD_KEY = 'secret_password';
+
+// 简单的密码编码/解码
+const encodePassword = (pwd: string) => Buffer.from(pwd).toString('base64');
+const decodePassword = (encoded: string) => Buffer.from(encoded, 'base64').toString();
 
 export default function SecretPage() {
   const router = useSafeRouter();
+  const [isLocked, setIsLocked] = useState(true);
+  const [isFirstTime, setIsFirstTime] = useState(true);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [notes, setNotes] = useState<SecretNote[]>([]);
   const [todos, setTodos] = useState<SecretTodo[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -33,6 +42,62 @@ export default function SecretPage() {
   const [editingItem, setEditingItem] = useState<{ type: 'note' | 'todo'; data?: SecretNote | SecretTodo } | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
+
+  // 检查密码是否已设置
+  useEffect(() => {
+    const checkPassword = async () => {
+      try {
+        const storedPwd = await AsyncStorage.getItem(PASSWORD_KEY);
+        if (storedPwd) {
+          setIsFirstTime(false);
+        } else {
+          setIsFirstTime(true);
+        }
+      } catch (error) {
+        console.error('Error checking password:', error);
+        setIsFirstTime(true);
+      }
+    };
+    checkPassword();
+  }, []);
+
+  // 设置密码
+  const handleSetPassword = () => {
+    if (!password.trim()) {
+      Alert.alert('提示', '请输入密码');
+      return;
+    }
+    if (password.length < 4) {
+      Alert.alert('提示', '密码至少4位');
+      return;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert('提示', '两次密码不一致');
+      return;
+    }
+    const encoded = encodePassword(password);
+    AsyncStorage.setItem(PASSWORD_KEY, encoded);
+    setIsLocked(false);
+    setPassword('');
+    setConfirmPassword('');
+  };
+
+  // 验证密码并加载数据
+  const handleVerifyPassword = () => {
+    if (!password.trim()) {
+      Alert.alert('提示', '请输入密码');
+      return;
+    }
+    AsyncStorage.getItem(PASSWORD_KEY).then(storedPwd => {
+      if (storedPwd && decodePassword(storedPwd) === password) {
+        setIsLocked(false);
+        setPassword('');
+        loadData();
+      } else {
+        Alert.alert('错误', '密码错误');
+      }
+    });
+  };
 
   const loadData = useCallback(async () => {
     try {
@@ -53,11 +118,6 @@ export default function SecretPage() {
       console.error('Error saving data:', error);
     }
   }, []);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadData();
-  }, [loadData]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -154,6 +214,54 @@ export default function SecretPage() {
     setTodos(updated);
     await saveData(notes, updated);
   };
+
+  // 密码设置/验证界面
+  if (isLocked) {
+    return (
+      <Screen>
+        <View className="flex-1 bg-background items-center justify-center px-8">
+          <FontAwesome6 name="lock" size={64} color="#4F46E5" />
+          <Text className="text-2xl font-bold text-foreground mt-6">
+            {isFirstTime ? '设置密码' : '请输入密码'}
+          </Text>
+          <Text className="text-muted mt-2 text-center">
+            {isFirstTime ? '设置密码保护您的小秘密' : '输入密码解锁小秘密'}
+          </Text>
+
+          <View className="w-full mt-8">
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              placeholder="输入密码"
+              secureTextEntry
+              className="bg-white rounded-xl px-4 py-4 text-foreground mb-4"
+              placeholderTextColor="#9CA3AF"
+            />
+            
+            {isFirstTime && (
+              <TextInput
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="确认密码"
+                secureTextEntry
+                className="bg-white rounded-xl px-4 py-4 text-foreground mb-6"
+                placeholderTextColor="#9CA3AF"
+              />
+            )}
+
+            <TouchableOpacity
+              onPress={isFirstTime ? handleSetPassword : handleVerifyPassword}
+              className="bg-accent rounded-full py-4"
+            >
+              <Text className="text-white text-center font-bold text-lg">
+                {isFirstTime ? '确认设置' : '解锁'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Screen>
+    );
+  }
 
   const filteredNotes = filter === 'todo' ? [] : notes;
   const filteredTodos = filter === 'note' ? [] : todos;
