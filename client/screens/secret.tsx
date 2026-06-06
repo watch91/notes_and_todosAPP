@@ -25,8 +25,15 @@ const TODOS_KEY = 'secret_todos';
 const PASSWORD_KEY = 'secret_password';
 
 // 简单的密码编码/解码
-const encodePassword = (pwd: string) => Buffer.from(pwd).toString('base64');
-const decodePassword = (encoded: string) => Buffer.from(encoded, 'base64').toString();
+// Base64 编码/解码（兼容 React Native）
+const encodePassword = (pwd: string) => {
+  if (typeof btoa !== 'undefined') return btoa(pwd);
+  return Buffer.from(pwd).toString('base64');
+};
+const decodePassword = (encoded: string) => {
+  if (typeof atob !== 'undefined') return atob(encoded);
+  return Buffer.from(encoded, 'base64').toString();
+};
 
 export default function SecretPage() {
   const router = useSafeRouter();
