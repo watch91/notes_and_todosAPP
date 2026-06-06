@@ -10,8 +10,8 @@ router.get('/', async (req, res) => {
     const { data, error } = await client.from('app_config').select('*');
     if (error) throw new Error(`获取失败: ${error.message}`);
     
-    const config = {};
-    data.forEach(item => { config[item.key] = item.value; });
+    const config: Record<string, string> = {};
+    data.forEach((item: { key: string; value: string }) => { config[item.key] = item.value; });
     res.json({ new_version: config.new_version || '1.0.0', download_url: config.download_url || '' });
   } catch (error: any) {
     console.error('Error:', error);

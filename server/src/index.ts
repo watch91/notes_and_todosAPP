@@ -3,6 +3,7 @@ import cors from "cors";
 import notesRouter from "./routes/notes.js";
 import todosRouter from "./routes/todos.js";
 import versionRouter from "./routes/version.js";
+import feedbackRouter from "./routes/feedback.js";
 
 const app = express();
 const port = process.env.PORT || 9091;
@@ -22,6 +23,7 @@ app.get('/api/v1/health', (req, res) => {
 app.use('/api/v1/notes', notesRouter);
 app.use('/api/v1/todos', todosRouter);
 app.use('/api/v1/version', versionRouter);
+app.use('/api/v1/feedback', feedbackRouter);
 
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}/`);
