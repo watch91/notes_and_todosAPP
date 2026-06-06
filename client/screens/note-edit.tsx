@@ -16,6 +16,7 @@ export default function NoteEditPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState('');
   const [aiModalVisible, setAiModalVisible] = useState(false);
+  const [isReadOnly, setIsReadOnly] = useState(true);
 
   const isEditing = !!params.id;
 
@@ -108,24 +109,39 @@ export default function NoteEditPage() {
           <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
             <FontAwesome6 name="arrow-left" size={20} color="#374151" />
           </TouchableOpacity>
-          <Text className="text-lg font-bold text-foreground">{isEditing ? '编辑笔记' : '新建笔记'}</Text>
-          <TouchableOpacity
-            onPress={handleAISummarize}
-            className="p-2 -mr-2"
-          >
-            <FontAwesome6 name="wand-magic-sparkles" size={18} color="#4F46E5" /><Text className="text-xs text-indigo-600 ml-1">一键总结</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleSave}
-            disabled={loading || !title.trim()}
-            className="px-4 py-2 rounded-full bg-accent"
-          >
-            <Text className="text-white font-medium text-sm">保存</Text>
-          </TouchableOpacity>
+          <Text className="text-lg font-bold text-foreground">
+            {isReadOnly && isEditing ? '阅读模式' : (isEditing ? '编辑笔记' : '新建笔记')}
+          </Text>
+          {isReadOnly && isEditing ? (
+            <TouchableOpacity
+              onPress={() => setIsReadOnly(false)}
+              className="px-4 py-2 rounded-full bg-accent"
+            >
+              <Text className="text-white font-medium text-sm">编辑</Text>
+            </TouchableOpacity>
+          ) : (
+            <>
+              {content.trim() && (
+                <TouchableOpacity
+                  onPress={handleAISummarize}
+                  className="p-2 -mr-2"
+                >
+                  <FontAwesome6 name="wand-magic-sparkles" size={18} color="#4F46E5" /><Text className="text-xs text-indigo-600 ml-1">一键总结</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                onPress={handleSave}
+                disabled={loading || !title.trim()}
+                className="px-4 py-2 rounded-full bg-accent"
+              >
+                <Text className="text-white font-medium text-sm">保存</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         <ScrollView className="flex-1 px-5 py-4" showsVerticalScrollIndicator={false}>
-          {/* Title Input */}
+          {/* Title */}
           <View className="bg-white rounded-2xl p-4 mb-4"
             style={{
               shadowColor: '#4F46E5',
@@ -135,17 +151,21 @@ export default function NoteEditPage() {
               elevation: 2,
             }}
           >
-            <TextInput
-              value={title}
-              onChangeText={setTitle}
-              placeholder="输入笔记标题..."
-              placeholderTextColor="#9CA3AF"
-              className="text-base font-medium text-foreground"
-              style={{ outline: 'none' }}
-            />
+            {isReadOnly && isEditing ? (
+              <Text className="text-base font-medium text-foreground">{title || '无标题'}</Text>
+            ) : (
+              <TextInput
+                value={title}
+                onChangeText={setTitle}
+                placeholder="输入笔记标题..."
+                placeholderTextColor="#9CA3AF"
+                className="text-base font-medium text-foreground"
+                style={{ outline: 'none' }}
+              />
+            )}
           </View>
 
-          {/* Content Input */}
+          {/* Content */}
           <View className="bg-white rounded-2xl p-4 min-h-[300px]"
             style={{
               shadowColor: '#4F46E5',
@@ -155,16 +175,20 @@ export default function NoteEditPage() {
               elevation: 2,
             }}
           >
-            <TextInput
-              value={content}
-              onChangeText={setContent}
-              placeholder="输入笔记内容..."
-              placeholderTextColor="#9CA3AF"
-              multiline
-              textAlignVertical="top"
-              className="text-base text-foreground min-h-[280px]"
-              style={{ outline: 'none' }}
-            />
+            {isReadOnly && isEditing ? (
+              <Text className="text-base text-foreground whitespace-pre-wrap">{content || '无内容'}</Text>
+            ) : (
+              <TextInput
+                value={content}
+                onChangeText={setContent}
+                placeholder="输入笔记内容..."
+                placeholderTextColor="#9CA3AF"
+                multiline
+                textAlignVertical="top"
+                className="text-base text-foreground min-h-[280px]"
+                style={{ outline: 'none' }}
+              />
+            )}
           </View>
         </ScrollView>
 

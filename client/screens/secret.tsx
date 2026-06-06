@@ -373,24 +373,29 @@ export default function SecretPage() {
           </TouchableOpacity>
         </View>
 
-        {/* Add/Edit Modal */}
-        <Modal visible={modalVisible} transparent animationType="slide">
-          <View className="flex-1 bg-black/50 justify-end">
-            <View className="bg-white rounded-t-3xl p-5 max-h-[80%]">
-              <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-lg font-bold text-foreground">
-                  {editingItem?.data ? '编辑' : '新建'}{editingItem?.type === 'note' ? '笔记' : '待办'}
-                </Text>
-                <TouchableOpacity onPress={() => setModalVisible(false)}>
-                  <FontAwesome6 name="xmark" size={20} color="#6B7280" />
-                </TouchableOpacity>
-              </View>
+        {/* Add/Edit Modal - 全屏 */}
+        <Modal visible={modalVisible} animationType="slide">
+          <View className="flex-1 bg-white">
+            {/* Header */}
+            <View className="flex-row justify-between items-center px-5 py-4 border-b border-gray-100">
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Text className="text-accent text-base">取消</Text>
+              </TouchableOpacity>
+              <Text className="text-lg font-bold text-foreground">
+                {editingItem?.data ? '编辑' : '新建'}{editingItem?.type === 'note' ? '笔记' : '待办'}
+              </Text>
+              <TouchableOpacity onPress={handleSave} disabled={!editTitle.trim()}>
+                <Text className={`text-base font-medium ${editTitle.trim() ? 'text-accent' : 'text-gray-300'}`}>保存</Text>
+              </TouchableOpacity>
+            </View>
 
+            {/* Content */}
+            <View className="flex-1 px-5 py-4">
               <TextInput
                 value={editTitle}
                 onChangeText={setEditTitle}
                 placeholder="输入标题..."
-                className="bg-gray-50 rounded-xl px-4 py-3 text-foreground mb-3"
+                className="bg-gray-50 rounded-xl px-4 py-3 text-foreground text-lg mb-3"
                 placeholderTextColor="#9CA3AF"
               />
 
@@ -399,28 +404,12 @@ export default function SecretPage() {
                   value={editContent}
                   onChangeText={setEditContent}
                   placeholder="输入内容..."
-                  className="bg-gray-50 rounded-xl px-4 py-3 text-foreground mb-3 min-h-[150px]"
+                  className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-foreground"
                   placeholderTextColor="#9CA3AF"
                   multiline
                   textAlignVertical="top"
                 />
               )}
-
-              <View className="flex-row gap-3 mt-4">
-                <TouchableOpacity
-                  onPress={() => setModalVisible(false)}
-                  className="flex-1 py-3 rounded-full border border-gray-200"
-                >
-                  <Text className="text-center text-foreground">取消</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleSave}
-                  disabled={!editTitle.trim()}
-                  className="flex-1 py-3 rounded-full bg-accent disabled:opacity-50"
-                >
-                  <Text className="text-center text-white font-medium">保存</Text>
-                </TouchableOpacity>
-              </View>
             </View>
           </View>
         </Modal>

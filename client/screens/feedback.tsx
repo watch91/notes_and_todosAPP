@@ -8,6 +8,7 @@ const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL ||
 export default function FeedbackPage() {
   const [content, setContent] = useState('');
   const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
 
   const handleSend = async () => {
     if (!content.trim()) {
@@ -24,7 +25,7 @@ export default function FeedbackPage() {
       });
 
       if (response.ok) {
-        Alert.alert('成功', '反馈已发送，感谢您的反馈！', [{ text: '确定', onPress: () => router.back() }]);
+        setSent(true);
         setContent('');
       } else {
         Alert.alert('失败', '发送失败，请稍后重试');
@@ -35,6 +36,26 @@ export default function FeedbackPage() {
       setSending(false);
     }
   };
+
+  if (sent) {
+    return (
+      <Screen>
+        <View className="flex-1 bg-white items-center justify-center px-8">
+          <View className="w-20 h-20 rounded-full bg-green-100 items-center justify-center mb-6">
+            <Text className="text-4xl">✓</Text>
+          </View>
+          <Text className="text-2xl font-bold text-foreground mb-2">提交成功</Text>
+          <Text className="text-muted text-center mb-8">感谢您的反馈，我们会尽快处理</Text>
+          <TouchableOpacity
+            className="bg-indigo-500 rounded-2xl py-3 px-12"
+            onPress={() => router.back()}
+          >
+            <Text className="text-white font-bold">退出</Text>
+          </TouchableOpacity>
+        </View>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
