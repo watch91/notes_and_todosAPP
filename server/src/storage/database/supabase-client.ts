@@ -41,7 +41,7 @@ except Exception as e:
 
     const output = execSync(`python3 -c '${pythonCode.replace(/'/g, "'\"'\"'")}'`, {
       encoding: 'utf-8',
-      timeout: 10000,
+      timeout: 3000,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
