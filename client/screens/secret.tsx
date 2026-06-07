@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Modal, TextInput, Alert, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Modal, TextInput, Alert, RefreshControl, SafeAreaView } from 'react-native';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
@@ -49,6 +49,7 @@ export default function SecretPage() {
   const [editingItem, setEditingItem] = useState<{ type: 'note' | 'todo'; data?: SecretNote | SecretTodo } | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
+  const [isReadOnly, setIsReadOnly] = useState(false);
 
   // 检查密码是否已设置
   useEffect(() => {
@@ -143,7 +144,13 @@ export default function SecretPage() {
     setEditingItem({ type, data: item });
     setEditTitle(item.title);
     setEditContent(type === 'note' ? (item as SecretNote).content : '');
+    // 笔记默认只读，待办直接编辑
+    setIsReadOnly(type === 'note');
     setModalVisible(true);
+  };
+
+  const handleStartEdit = () => {
+    setIsReadOnly(false);
   };
 
   const handleSave = async () => {
@@ -377,38 +384,61 @@ export default function SecretPage() {
         <Modal visible={modalVisible} animationType="slide">
           <View className="flex-1 bg-white">
             {/* Header */}
-            <View className="flex-row justify-between items-center px-5 py-4 border-b border-gray-100">
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Text className="text-accent text-base">取消</Text>
-              </TouchableOpacity>
-              <Text className="text-lg font-bold text-foreground">
-                {editingItem?.data ? '编辑' : '新建'}{editingItem?.type === 'note' ? '笔记' : '待办'}
-              </Text>
-              <TouchableOpacity onPress={handleSave} disabled={!editTitle.trim()}>
-                <Text className={`text-base font-medium ${editTitle.trim() ? 'text-accent' : 'text-gray-300'}`}>保存</Text>
-              </TouchableOpacity>
-            </View>
+            <SafeAreaView className="bg-white">
+              <View className="flex-row justify-between items-center px-5 pt-6 pb-4 border-b border-gray-100">
+                {isReadOnly && editingItem?.type === 'note' ? (
+                  <TouchableOpacity onPress={() => setModalVisible(false)}>
+                    <Text className="text-accent text-base">返回</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity onPress={() => { setModalVisible(false); setIsReadOnly(false); }}>
+                    <Text className="text-accent text-base">取消</Text>
+                  </TouchableOpacity>
+                )}
+                <Text className="text-lg font-bold text-foreground">
+                  {editingItem?.data ? '编辑' : '新建'}{editingItem?.type === 'note' ? '笔记' : '待办'}
+                </Text>
+                {isReadOnly && editingItem?.type === 'note' ? (
+                  <TouchableOpacity onPress={handleStartEdit}>
+                    <Text className="text-accent text-base font-medium">编辑</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity onPress={handleSave} disabled={!editTitle.trim()}>
+                    <Text className={`text-base font-medium ${editTitle.trim() ? 'text-accent' : 'text-gray-300'}`}>保存</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </SafeAreaView>
 
             {/* Content */}
-            <View className="flex-1 px-5 py-4">
-              <TextInput
-                value={editTitle}
-                onChangeText={setEditTitle}
-                placeholder="输入标题..."
-                className="bg-gray-50 rounded-xl px-4 py-3 text-foreground text-lg mb-3"
-                placeholderTextColor="#9CA3AF"
-              />
+            <View className="flex-1 px-5 pt-4">
+              {!isReadOnly && (
+                <TextInput
+                  value={editTitle}
+                  onChangeText={setEditTitle}
+                  placeholder="输入标题..."
+                  className="bg-gray-50 rounded-xl px-4 py-3 text-foreground text-lg mb-3"
+                  placeholderTextColor="#9CA3AF"
+                />
+              )}
 
               {editingItem?.type === 'note' && (
-                <TextInput
-                  value={editContent}
-                  onChangeText={setEditContent}
-                  placeholder="输入内容..."
-                  className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-foreground"
-                  placeholderTextColor="#9CA3AF"
-                  multiline
-                  textAlignVertical="top"
-                />
+                isReadOnly ? (
+                  <View className="flex-1 bg-gray-50 rounded-xl px-4 py-3">
+                    <Text className="text-lg font-medium text-foreground mb-4">{editTitle}</Text>
+                    <Text className="text-foreground leading-relaxed">{editContent || '暂无内容'}</Text>
+                  </View>
+                ) : (
+                  <TextInput
+                    value={editContent}
+                    onChangeText={setEditContent}
+                    placeholder="输入内容..."
+                    className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-foreground"
+                    placeholderTextColor="#9CA3AF"
+                    multiline
+                    textAlignVertical="top"
+                  />
+                )
               )}
             </View>
           </View>
