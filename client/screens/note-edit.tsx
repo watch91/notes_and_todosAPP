@@ -82,7 +82,7 @@ export default function NoteEditPage() {
         },
         body: JSON.stringify({
           model: 'deepseek-chat',
-          messages: [{ role: 'user', content: `请帮我总结以下内容：\n\n${content}\n\n请直接输出最终回答。` }],
+          messages: [{ role: 'user', content: `请用尽可能最简洁的话总结下面的内容：\n\n${content}\n\n直接输出回答。` }],
         }),
       });
       const data = await res.json();
