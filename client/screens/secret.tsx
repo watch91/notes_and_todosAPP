@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Modal, TextInput, Alert, RefreshControl, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Modal, TextInput, Alert, RefreshControl, SafeAreaView, Platform, KeyboardAvoidingView } from 'react-native';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
@@ -382,7 +382,10 @@ export default function SecretPage() {
 
         {/* Add/Edit Modal - 全屏 */}
         <Modal visible={modalVisible} animationType="slide">
-          <View className="flex-1 bg-white">
+          <KeyboardAvoidingView
+            className="flex-1 bg-white"
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
             {/* Header */}
             <SafeAreaView className="bg-white">
               <View className="flex-row justify-between items-center px-5 pt-6 pb-4 border-b border-gray-100">
@@ -411,7 +414,7 @@ export default function SecretPage() {
             </SafeAreaView>
 
             {/* Content */}
-            <View className="flex-1 px-5 pt-4">
+            <ScrollView className="flex-1 px-5 pt-4" keyboardShouldPersistTaps="handled">
               {!isReadOnly && (
                 <TextInput
                   value={editTitle}
@@ -433,15 +436,15 @@ export default function SecretPage() {
                     value={editContent}
                     onChangeText={setEditContent}
                     placeholder="输入内容..."
-                    className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-foreground"
+                    className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-foreground min-h-[200px]"
                     placeholderTextColor="#9CA3AF"
                     multiline
                     textAlignVertical="top"
                   />
                 )
               )}
-            </View>
-          </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </Modal>
       </View>
     </Screen>
