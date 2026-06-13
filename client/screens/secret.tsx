@@ -1,16 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Modal, TextInput, Alert, RefreshControl, SafeAreaView, Platform, KeyboardAvoidingView, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Modal, TextInput, Alert, RefreshControl, SafeAreaView, Platform, KeyboardAvoidingView } from 'react-native';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as ImagePicker from 'expo-image-picker';
 
 interface SecretNote {
   id: string;
   title: string;
   content: string;
-  images: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -51,7 +49,6 @@ export default function SecretPage() {
   const [editingItem, setEditingItem] = useState<{ type: 'note' | 'todo'; data?: SecretNote | SecretTodo } | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
-  const [editImages, setEditImages] = useState<string[]>([]);
   const [isReadOnly, setIsReadOnly] = useState(false);
 
   // 检查密码是否已设置
@@ -140,37 +137,13 @@ export default function SecretPage() {
     setEditingItem({ type });
     setEditTitle('');
     setEditContent('');
-    setEditImages([]);
-    setIsReadOnly(false);
     setModalVisible(true);
-  };
-
-  const handleSelectImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('提示', '需要相册权限才能添加图片');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      setEditImages([...editImages, result.assets[0].uri]);
-    }
-  };
-
-  const handleRemoveImage = (index: number) => {
-    const updated = editImages.filter((_, i) => i !== index);
-    setEditImages(updated);
   };
 
   const handleEdit = (type: 'note' | 'todo', item: SecretNote | SecretTodo) => {
     setEditingItem({ type, data: item });
     setEditTitle(item.title);
     setEditContent(type === 'note' ? (item as SecretNote).content : '');
-    setEditImages(type === 'note' ? (item as SecretNote).images || [] : []);
     // 笔记默认只读，待办直接编辑
     setIsReadOnly(type === 'note');
     setModalVisible(true);
@@ -187,7 +160,7 @@ export default function SecretPage() {
       if (editingItem.data) {
         const updated = notes.map(n =>
           n.id === editingItem.data!.id
-            ? { ...n, title: editTitle, content: editContent, images: editImages, updatedAt: new Date().toISOString() }
+            ? { ...n, title: editTitle, content: editContent, updatedAt: new Date().toISOString() }
             : n
         );
         setNotes(updated);
@@ -197,7 +170,6 @@ export default function SecretPage() {
           id: Date.now().toString(),
           title: editTitle,
           content: editContent,
-          images: editImages,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -458,48 +430,17 @@ export default function SecretPage() {
                   <View className="flex-1 bg-gray-50 rounded-xl px-4 py-3">
                     <Text className="text-lg font-medium text-foreground mb-4">{editTitle}</Text>
                     <Text className="text-foreground leading-relaxed">{editContent || '暂无内容'}</Text>
-                    {/* 只读模式下展示图片 */}
-                    {editImages.length > 0 && (
-                      <View className="flex-row flex-wrap mt-4">
-                        {editImages.map((uri, index) => (
-                          <Image key={index} source={{ uri }} className="w-20 h-20 rounded-lg mr-2 mb-2" />
-                        ))}
-                      </View>
-                    )}
                   </View>
                 ) : (
-                  <>
-                    <TextInput
-                      value={editContent}
-                      onChangeText={setEditContent}
-                      placeholder="输入内容..."
-                      className="bg-gray-50 rounded-xl px-4 py-3 text-foreground min-h-[150px] mb-3"
-                      placeholderTextColor="#9CA3AF"
-                      multiline
-                      textAlignVertical="top"
-                    />
-                    {/* 图片选择 */}
-                    <TouchableOpacity onPress={handleSelectImage} className="flex-row items-center bg-gray-100 rounded-xl px-4 py-3 mb-3">
-                      <FontAwesome6 name="image" size={20} color="#4F46E5" />
-                      <Text className="text-accent ml-2">添加图片</Text>
-                    </TouchableOpacity>
-                    {/* 图片预览 */}
-                    {editImages.length > 0 && (
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
-                        {editImages.map((uri, index) => (
-                          <View key={index} className="mr-2 relative">
-                            <Image source={{ uri }} className="w-20 h-20 rounded-lg" />
-                            <TouchableOpacity
-                              onPress={() => handleRemoveImage(index)}
-                              className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full items-center justify-center"
-                            >
-                              <FontAwesome6 name="xmark" size={12} color="white" />
-                            </TouchableOpacity>
-                          </View>
-                        ))}
-                      </ScrollView>
-                    )}
-                  </>
+                  <TextInput
+                    value={editContent}
+                    onChangeText={setEditContent}
+                    placeholder="输入内容..."
+                    className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-foreground min-h-[200px]"
+                    placeholderTextColor="#9CA3AF"
+                    multiline
+                    textAlignVertical="top"
+                  />
                 )
               )}
             </ScrollView>

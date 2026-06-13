@@ -1,15 +1,12 @@
 import express from "express";
 import cors from "cors";
-import multer from "multer";
 import notesRouter from "./routes/notes.js";
 import todosRouter from "./routes/todos.js";
 import versionRouter from "./routes/version.js";
 import feedbackRouter from "./routes/feedback.js";
-import uploadRouter from "./routes/upload.js";
 
 const app = express();
 const port = process.env.PORT || 9091;
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 // Middleware
 app.use(cors());
@@ -27,7 +24,6 @@ app.use('/api/v1/notes', notesRouter);
 app.use('/api/v1/todos', todosRouter);
 app.use('/api/v1/version', versionRouter);
 app.use('/api/v1/feedback', feedbackRouter);
-app.use('/api/v1/upload', upload.single('image'), uploadRouter);
 
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}/`);

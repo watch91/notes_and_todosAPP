@@ -50,12 +50,12 @@ router.get('/:id', async (req, res) => {
 // 创建笔记
 router.post('/', async (req, res) => {
   try {
-    const { title, content, images } = req.body;
+    const { title, content } = req.body;
     if (!title) {
       return res.status(400).json({ success: false, error: 'Title is required' });
     }
     const client = getSupabaseClient();
-    const { data, error } = await client.from('notes').insert({ title, content: content || '', images: images || [] }).select();
+    const { data, error } = await client.from('notes').insert({ title, content: content || '' }).select();
     if (error) throw new Error(`插入失败: ${error.message}`);
     res.status(201).json({ success: true, data });
   } catch (error: any) {
@@ -68,10 +68,10 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, content, images } = req.body;
+    const { title, content } = req.body;
     const client = getSupabaseClient();
     const { data, error } = await client.from('notes')
-      .update({ title, content, images, updated_at: new Date().toISOString() })
+      .update({ title, content, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select();
     if (error) throw new Error(`更新失败: ${error.message}`);
