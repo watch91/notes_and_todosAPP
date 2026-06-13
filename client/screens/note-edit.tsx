@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, Alert, Image } from 'react-native';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
+import * as ImagePicker from 'expo-image-picker';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 const DEEPSEEK_API_KEY = 'sk-5034bff7138d409dbf94f94c1be9440e';
 
 export default function NoteEditPage() {
   const router = useSafeRouter();
-  const params = useSafeSearchParams<{ id?: number; title?: string; content?: string }>();
+  const params = useSafeSearchParams<{ id?: number; title?: string; content?: string; images?: string }>();
   const [title, setTitle] = useState(params.title || '');
   const [content, setContent] = useState(params.content || '');
+  const [images, setImages] = useState<string[]>(params.images ? JSON.parse(params.images) : []);
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState('');
@@ -33,6 +35,7 @@ export default function NoteEditPage() {
       if (data.success) {
         setTitle(data.data.title);
         setContent(data.data.content || '');
+        setImages(data.data.images || []);
       }
     } catch (error) {
       console.error('Error fetching note:', error);
@@ -48,13 +51,13 @@ export default function NoteEditPage() {
         await fetch(`${API_BASE}/api/v1/notes/${params.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, content }),
+          body: JSON.stringify({ title, content, images }),
         });
       } else {
         await fetch(`${API_BASE}/api/v1/notes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, content }),
+          body: JSON.stringify({ title, content, images }),
         });
       }
       router.back();
@@ -63,6 +66,53 @@ export default function NoteEditPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('权限不足', '需要相册权限才能添加图片');
+      return;
+    }
+    
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: false,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      setLoading(true);
+      try {
+        const formData = new FormData();
+        formData.append('image', {
+          uri: asset.uri,
+          name: 'image.jpg',
+          type: 'image/jpeg',
+        } as any);
+
+        const res = await fetch(`${API_BASE}/api/v1/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json();
+        if (data.success) {
+          setImages([...images, data.data.url]);
+        } else {
+          Alert.alert('上传失败', data.message || '请重试');
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
+        Alert.alert('上传失败', '请检查网络连接');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index));
   };
 
   const handleAISummarize = async () => {
@@ -166,7 +216,7 @@ export default function NoteEditPage() {
           </View>
 
           {/* Content */}
-          <View className="bg-white rounded-2xl p-4 min-h-[300px]"
+          <View className="bg-white rounded-2xl p-4 min-h-[300px] mb-4"
             style={{
               shadowColor: '#4F46E5',
               shadowOffset: { width: 0, height: 2 },
@@ -190,6 +240,38 @@ export default function NoteEditPage() {
               />
             )}
           </View>
+
+          {/* Images Section */}
+          {(images.length > 0 || (!isReadOnly || !isEditing)) && (
+            <View className="mb-4">
+              <View className="flex-row items-center justify-between mb-3">
+                <Text className="text-base font-medium text-foreground">附件图片</Text>
+                {!isReadOnly || !isEditing ? (
+                  <TouchableOpacity onPress={handlePickImage} className="px-3 py-1.5 rounded-full bg-indigo-50">
+                    <Text className="text-indigo-600 text-sm font-medium">添加图片</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+              
+              {images.length > 0 && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-3">
+                  {images.map((uri, index) => (
+                    <View key={index} className="relative">
+                      <Image source={{ uri }} className="w-24 h-24 rounded-xl" />
+                      {(!isReadOnly || !isEditing) && (
+                        <TouchableOpacity
+                          onPress={() => handleRemoveImage(index)}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full items-center justify-center"
+                        >
+                          <FontAwesome6 name="xmark" size={12} color="white" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+          )}
         </ScrollView>
 
         {/* AI Summary Modal */}
