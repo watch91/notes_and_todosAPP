@@ -55,15 +55,18 @@ export default function NoteEditPage() {
       const res = await fetch(`${API_BASE}/api/v1/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ note_id: params.id, content: newComment }),
+        body: JSON.stringify({ note_id: parseInt(params.id), content: newComment }),
       });
       const data = await res.json();
       if (data.id) {
         setComments([...comments, data]);
         setNewComment('');
+      } else {
+        alert('评论失败，请重试');
       }
     } catch (error) {
       console.error('Error adding comment:', error);
+      alert('评论失败，请检查网络');
     }
     setCommentLoading(false);
   };

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { supabase } from '../storage/database/supabase-client';
+import { getSupabaseClient } from '../storage/database/supabase-client';
 
 const router = Router();
 
@@ -7,6 +7,7 @@ const router = Router();
 router.get('/note/:noteId', async (req, res) => {
   try {
     const { noteId } = req.params;
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('comments')
       .select('*')
@@ -24,6 +25,7 @@ router.get('/note/:noteId', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { note_id, content } = req.body;
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('comments')
       .insert({ note_id, content })
@@ -41,6 +43,7 @@ router.post('/', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const supabase = getSupabaseClient();
     const { error } = await supabase
       .from('comments')
       .delete()
