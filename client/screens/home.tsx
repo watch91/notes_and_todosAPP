@@ -179,7 +179,7 @@ export default function HomePage() {
 
         {/* 屏蔽开关 */}
         <View className="px-5 pb-3 flex-row items-center justify-end">
-          <Text className="text-xs text-muted mr-2">屏蔽更新公告与测试</Text>
+          <Text className="text-xs text-muted mr-2">屏蔽更新公告与测试笔记</Text>
           <TouchableOpacity
             className={`w-10 h-6 rounded-full p-0.5 ${屏蔽过滤开关 ? 'bg-indigo-500' : 'bg-gray-300'}`}
             onPress={() => set屏蔽过滤开关(!屏蔽过滤开关)}

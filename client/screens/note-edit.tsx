@@ -17,6 +17,9 @@ export default function NoteEditPage() {
   const [aiResult, setAiResult] = useState('');
   const [aiModalVisible, setAiModalVisible] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(true);
+  const [comments, setComments] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [commentLoading, setCommentLoading] = useState(false);
 
   const isEditing = !!params.id;
 
@@ -34,8 +37,43 @@ export default function NoteEditPage() {
         setTitle(data.data.title);
         setContent(data.data.content || '');
       }
+      // 获取评论
+      const commentRes = await fetch(`${API_BASE}/api/v1/comments/note/${id}`);
+      const commentData = await commentRes.json();
+      if (Array.isArray(commentData)) {
+        setComments(commentData);
+      }
     } catch (error) {
       console.error('Error fetching note:', error);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!newComment.trim() || !params.id) return;
+    setCommentLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note_id: params.id, content: newComment }),
+      });
+      const data = await res.json();
+      if (data.id) {
+        setComments([...comments, data]);
+        setNewComment('');
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
+    setCommentLoading(false);
+  };
+
+  const handleDeleteComment = async (id: number) => {
+    try {
+      await fetch(`${API_BASE}/api/v1/comments/${id}`, { method: 'DELETE' });
+      setComments(comments.filter(c => c.id !== id));
+    } catch (error) {
+      console.error('Error deleting comment:', error);
     }
   };
 
@@ -190,6 +228,37 @@ export default function NoteEditPage() {
               />
             )}
           </View>
+
+          {/* 评论区域 */}
+          {isReadOnly && isEditing && (
+            <View className="mt-4 px-1">
+              <Text className="text-base font-semibold text-foreground mb-3">评论 ({comments.length})</Text>
+              {comments.map(comment => (
+                <View key={comment.id} className="bg-white rounded-xl p-3 mb-2 flex-row items-center">
+                  <Text className="flex-1 text-sm text-foreground">{comment.content}</Text>
+                  <TouchableOpacity onPress={() => handleDeleteComment(comment.id)} className="ml-2">
+                    <FontAwesome6 name="trash" size={14} color="#EF4444" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <View className="flex-row items-center mt-3">
+                <TextInput
+                  value={newComment}
+                  onChangeText={setNewComment}
+                  placeholder="添加评论..."
+                  className="flex-1 bg-white rounded-xl px-4 py-2.5 text-sm text-foreground border border-gray-200"
+                  placeholderTextColor="#9CA3AF"
+                />
+                <TouchableOpacity
+                  onPress={handleAddComment}
+                  disabled={commentLoading || !newComment.trim()}
+                  className="ml-2 bg-indigo-500 px-4 py-2.5 rounded-xl"
+                >
+                  <Text className="text-white text-sm font-medium">发送</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </ScrollView>
 
         {/* AI Summary Modal */}
