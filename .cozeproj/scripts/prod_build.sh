@@ -42,6 +42,11 @@ info "==================== 依赖安装完成！====================\n"
 info "==================== dist打包 ===================="
 info "开始执行：pnpm run build (server)"
 (pushd "$ROOT_DIR/server" > /dev/null && pnpm run build; popd > /dev/null) || error "dist打包失败"
+if [ -f "$ROOT_DIR/server/dist/index.js" ]; then
+  info "dist/index.js 已生成，大小: $(stat -c%s "$ROOT_DIR/server/dist/index.js") bytes"
+else
+  error "dist/index.js 未生成！"
+fi
 info "==================== dist打包完成！====================\n"
 
 info "下一步：执行 ./prod_run.sh 启动服务"
