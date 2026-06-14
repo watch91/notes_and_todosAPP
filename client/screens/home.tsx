@@ -7,6 +7,9 @@ import { useSafeRouter } from '@/hooks/useSafeRouter';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
+// 屏蔽关键词
+const BLOCK_KEYWORDS = ['更新公告', 'test'];
+
 interface Note {
   id: number;
   title: string;
@@ -43,6 +46,7 @@ export default function HomePage() {
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<HomeItem[] | null>(null);
+  const [屏蔽过滤开关, set屏蔽过滤开关] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -144,11 +148,17 @@ export default function HomePage() {
   };
 
   const filteredItems = items.filter(item => {
+    if (屏蔽过滤开关 && item.type === 'note' && BLOCK_KEYWORDS.some(kw => item.title.includes(kw))) {
+      return false;
+    }
     if (filter === 'all') return true;
     return item.type === filter;
   });
 
   const displayItems = searchResults !== null ? searchResults.filter(item => {
+    if (屏蔽过滤开关 && item.type === 'note' && BLOCK_KEYWORDS.some(kw => item.title.includes(kw))) {
+      return false;
+    }
     if (filter === 'all') return true;
     return item.type === filter;
   }) : filteredItems;
@@ -165,6 +175,17 @@ export default function HomePage() {
         <View className="px-5 pt-4 pb-3">
           <Text className="text-2xl font-bold text-foreground">我的记录</Text>
           <Text className="text-sm text-muted mt-1">记录生活点滴</Text>
+        </View>
+
+        {/* 屏蔽开关 */}
+        <View className="px-5 pb-3 flex-row items-center justify-end">
+          <Text className="text-xs text-muted mr-2">屏蔽更新公告与测试</Text>
+          <TouchableOpacity
+            className={`w-10 h-6 rounded-full p-0.5 ${屏蔽过滤开关 ? 'bg-indigo-500' : 'bg-gray-300'}`}
+            onPress={() => set屏蔽过滤开关(!屏蔽过滤开关)}
+          >
+            <View className={`w-5 h-5 rounded-full bg-white ${屏蔽过滤开关 ? 'ml-4' : 'ml-0'}`} />
+          </TouchableOpacity>
         </View>
 
         {/* Search Bar */}
