@@ -1,6 +1,8 @@
 import express from 'express';
 import nodemailer from 'nodemailer';
-import { APP_VERSION } from "/workspace/projects/client/utils/version.ts";
+import { SERVER_VERSION } from '../version.js';
+
+const APP_VERSION = SERVER_VERSION;
 
 const router = express.Router();
 
