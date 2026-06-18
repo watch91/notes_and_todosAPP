@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, TextInput, Alert, Linking } from 'react-native';
 import { useState, useEffect } from 'react';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
@@ -154,6 +154,17 @@ export default function ProfilePage() {
           >
             <FontAwesome6 name="code" size={20} color="#4F46E5" />
             <Text className="ml-4 text-base text-foreground flex-1">开发者模式</Text>
+            <FontAwesome6 name="chevron-right" size={16} color="#9CA3AF" />
+          </TouchableOpacity>
+
+          <View className="border-t border-gray-100" />
+
+          <TouchableOpacity
+            className="flex-row items-center py-3"
+            onPress={() => Linking.openURL('https://vlink.cc/xiaokeke205')}
+          >
+            <FontAwesome6 name="heart" size={20} color="#EF4444" />
+            <Text className="ml-4 text-base text-foreground flex-1">爱心捐助</Text>
             <FontAwesome6 name="chevron-right" size={16} color="#9CA3AF" />
           </TouchableOpacity>
 
