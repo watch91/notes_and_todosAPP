@@ -68,8 +68,8 @@ export default function ProfilePage() {
           <Text className="text-2xl font-bold text-foreground">个人中心</Text>
         </View>
 
-        {/* 账号信息 */}
-        <View className="mx-5 bg-white rounded-2xl p-5 shadow-sm mb-4"
+        {/* 账号登录区域 */}
+        <View className="mx-5 bg-white rounded-2xl p-5 shadow-sm"
           style={{
             shadowColor: '#4F46E5',
             shadowOffset: { width: 0, height: 2 },
@@ -81,12 +81,12 @@ export default function ProfilePage() {
           {userId ? (
             <>
               <View className="flex-row items-center">
-                <View className="w-14 h-14 rounded-full bg-indigo-100 items-center justify-center">
-                  <FontAwesome6 name="user" size={24} color="#4F46E5" />
+                <View className="w-16 h-16 rounded-full bg-indigo-100 items-center justify-center">
+                  <FontAwesome6 name="user" size={28} color="#4F46E5" />
                 </View>
-                <View className="ml-4 flex-1">
+                <View className="ml-4">
                   <Text className="text-lg font-bold text-foreground">{username}</Text>
-                  <Text className="text-sm text-muted">账号：{userId}</Text>
+                  <Text className="text-sm text-muted">已登录</Text>
                 </View>
               </View>
               <TouchableOpacity
@@ -99,11 +99,12 @@ export default function ProfilePage() {
           ) : (
             <>
               <View className="flex-row items-center mb-4">
-                <View className="w-14 h-14 rounded-full bg-gray-100 items-center justify-center">
-                  <FontAwesome6 name="user" size={24} color="#9CA3AF" />
+                <View className="w-16 h-16 rounded-full bg-gray-100 items-center justify-center">
+                  <FontAwesome6 name="user" size={28} color="#9CA3AF" />
                 </View>
                 <View className="ml-4">
-                  <Text className="text-base text-gray-400">未登录</Text>
+                  <Text className="text-lg font-bold text-gray-400">未登录</Text>
+                  <Text className="text-sm text-gray-400">登录后可同步数据</Text>
                 </View>
               </View>
               <TouchableOpacity
@@ -116,8 +117,7 @@ export default function ProfilePage() {
           )}
         </View>
 
-        {/* 其他功能 */}
-        <View className="mx-5 bg-white rounded-2xl p-5 shadow-sm"
+        <View className="mx-5 mt-6 bg-white rounded-2xl overflow-hidden shadow-sm"
           style={{
             shadowColor: '#4F46E5',
             shadowOffset: { width: 0, height: 2 },
@@ -126,53 +126,53 @@ export default function ProfilePage() {
             elevation: 2,
           }}
         >
-          <TouchableOpacity
-            className="flex-row items-center py-3"
-            onPress={() => router.push('/help')}
-          >
-            <FontAwesome6 name="circle-question" size={20} color="#4F46E5" />
-            <Text className="ml-4 text-base text-foreground flex-1">使用帮助</Text>
-            <FontAwesome6 name="chevron-right" size={16} color="#9CA3AF" />
+          <TouchableOpacity onPress={handleDevModeClick} className="flex-row items-center px-5 py-4 border-b border-gray-100">
+            <View className="w-10 h-10 rounded-xl bg-gray-50 items-center justify-center">
+              <FontAwesome6 name="code" size={16} color="#6B7280" />
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="font-medium text-foreground">开发者模式</Text>
+            </View>
+            <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
           </TouchableOpacity>
 
-          <View className="border-t border-gray-100" />
-
-          <TouchableOpacity
-            className="flex-row items-center py-3"
-            onPress={() => router.push('/feedback')}
-          >
-            <FontAwesome6 name="comment-dots" size={20} color="#4F46E5" />
-            <Text className="ml-4 text-base text-foreground flex-1">问题反馈</Text>
-            <FontAwesome6 name="chevron-right" size={16} color="#9CA3AF" />
+          <TouchableOpacity onPress={() => router.push('/help')} className="flex-row items-center px-5 py-4 border-b border-gray-100">
+            <View className="w-10 h-10 rounded-xl bg-blue-50 items-center justify-center">
+              <FontAwesome6 name="circle-question" size={16} color="#3B82F6" />
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="font-medium text-foreground">使用帮助</Text>
+            </View>
+            <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
           </TouchableOpacity>
 
-          <View className="border-t border-gray-100" />
-
-          <TouchableOpacity
-            className="flex-row items-center py-3"
-            onPress={handleDevModeClick}
-          >
-            <FontAwesome6 name="code" size={20} color="#4F46E5" />
-            <Text className="ml-4 text-base text-foreground flex-1">开发者模式</Text>
-            <FontAwesome6 name="chevron-right" size={16} color="#9CA3AF" />
+          <TouchableOpacity onPress={() => router.push('/feedback')} className="flex-row items-center px-5 py-4 border-b border-gray-100">
+            <View className="w-10 h-10 rounded-xl bg-green-50 items-center justify-center">
+              <FontAwesome6 name="comment-dots" size={16} color="#10B981" />
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="font-medium text-foreground">问题反馈</Text>
+            </View>
+            <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
           </TouchableOpacity>
 
-          <View className="border-t border-gray-100" />
-
-          <TouchableOpacity
-            className="flex-row items-center py-3"
-            onPress={() => Linking.openURL('https://vlink.cc/xiaokeke205')}
-          >
-            <FontAwesome6 name="heart" size={20} color="#EF4444" />
-            <Text className="ml-4 text-base text-foreground flex-1">爱心捐助</Text>
-            <FontAwesome6 name="chevron-right" size={16} color="#9CA3AF" />
+          <TouchableOpacity onPress={() => Linking.openURL('https://vlink.cc/xiaokeke205')} className="flex-row items-center px-5 py-4 border-b border-gray-100">
+            <View className="w-10 h-10 rounded-xl bg-red-50 items-center justify-center">
+              <FontAwesome6 name="heart" size={16} color="#EF4444" />
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="font-medium text-foreground">爱心捐助</Text>
+            </View>
+            <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
           </TouchableOpacity>
 
-          <View className="border-t border-gray-100" />
-
-          <View className="flex-row items-center py-3">
-            <FontAwesome6 name="info-circle" size={20} color="#4F46E5" />
-            <Text className="ml-4 text-base text-foreground flex-1">关于应用</Text>
+          <View className="flex-row items-center px-5 py-4">
+            <View className="w-10 h-10 rounded-xl bg-gray-50 items-center justify-center">
+              <FontAwesome6 name="info-circle" size={16} color="#6B7280" />
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="font-medium text-foreground">关于应用</Text>
+            </View>
             <Text className="text-sm text-muted">v{APP_VERSION}</Text>
           </View>
         </View>
