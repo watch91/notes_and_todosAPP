@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, Alert, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, Alert } from 'react-native';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
-import * as ImagePicker from 'expo-image-picker';
-import { createFormDataFile } from '@/utils';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 const DEEPSEEK_API_KEY = 'sk-5034bff7138d409dbf94f94c1be9440e';
@@ -20,8 +18,6 @@ export default function NoteEditPage() {
   const [aiModalVisible, setAiModalVisible] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [comments, setComments] = useState<any[]>([]);
-  const [images, setImages] = useState<string[]>([]);
-  const [imageLoading, setImageLoading] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
 
@@ -40,9 +36,6 @@ export default function NoteEditPage() {
       if (data.success) {
         setTitle(data.data.title);
         setContent(data.data.content || '');
-        if (data.data.images) {
-          setImages(typeof data.data.images === 'string' ? JSON.parse(data.data.images) : data.data.images);
-        }
       }
       // 获取评论
       const commentRes = await fetch(`${API_BASE}/api/v1/comments/note/${id}`);
@@ -59,13 +52,10 @@ export default function NoteEditPage() {
     if (!newComment.trim() || !params.id) return;
     setCommentLoading(true);
     try {
-      const session = await AsyncStorage.getItem('supabase_session');
-      const sessionData = session ? JSON.parse(session) : null;
-      const userId = sessionData?.user?.id;
       const res = await fetch(`${API_BASE}/api/v1/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ note_id: parseInt(params.id), content: newComment, user_id: userId }),
+        body: JSON.stringify({ note_id: parseInt(params.id), content: newComment }),
       });
       const data = await res.json();
       if (data.id) {
@@ -99,16 +89,13 @@ export default function NoteEditPage() {
         await fetch(`${API_BASE}/api/v1/notes/${params.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, content, images: JSON.stringify(images) }),
+          body: JSON.stringify({ title, content }),
         });
       } else {
-        const session = await AsyncStorage.getItem('supabase_session');
-        const sessionData = session ? JSON.parse(session) : null;
-        const userId = sessionData?.user?.id;
         await fetch(`${API_BASE}/api/v1/notes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, content, images: JSON.stringify(images), user_id: userId }),
+          body: JSON.stringify({ title, content }),
         });
       }
       router.back();

@@ -57,23 +57,12 @@ export default function HomePage() {
       const notesData = await notesRes.json();
       const todosData = await todosRes.json();
 
-      // 获取用户信息
-      let usernameMap: Record<string, string> = {};
-      try {
-        const userRes = await fetch(`${API_BASE}/api/v1/users/batch?user_ids=${notesData.users?.map((u: any) => u.user_id).join(',') || ''}`);
-        const userData = await userRes.json();
-        if (userData.data) {
-          userData.data.forEach((u: any) => { usernameMap[u.user_id] = u.username; });
-        }
-      } catch {}
-
       const notes: HomeItem[] = (notesData.data || []).map((n: Note) => ({
         type: 'note' as ItemType,
         id: n.id,
         title: n.title,
         subtitle: n.content?.substring(0, 50) || '无内容',
         created_at: n.created_at,
-        username: n.user_id ? usernameMap[n.user_id] : '匿名用户',
       }));
 
       const todos: HomeItem[] = (todosData.data || []).map((t: Todo) => ({
@@ -303,9 +292,6 @@ export default function HomePage() {
                         <Text className="text-sm text-muted mt-2 ml-10" numberOfLines={2}>
                           {item.subtitle}
                         </Text>
-                      )}
-                      {item.username && (
-                        <Text className="text-xs text-muted mt-1 ml-10">@{item.username}</Text>
                       )}
                       <Text className="text-xs text-muted mt-2 ml-10">{formatDate(item.created_at)}</Text>
                     </View>

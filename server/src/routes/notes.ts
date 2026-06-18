@@ -23,17 +23,7 @@ router.get('/', async (req, res) => {
     const client = getSupabaseClient();
     const { data, error } = await client.from('notes').select('*').order('updated_at', { ascending: false });
     if (error) throw new Error(`查询失败: ${error.message}`);
-    // 关联用户名
-    const notesWithUsername = await Promise.all(data.map(async (note: any) => {
-      if (note.user_id) {
-        const { data: profile } = await client.from('user_profiles').select('username').eq('user_id', note.user_id).maybeSingle();
-        note.username = profile?.username || '匿名用户';
-      } else {
-        note.username = '匿名用户';
-      }
-      return note;
-    }));
-    res.json({ success: true, data: notesWithUsername });
+    res.json({ success: true, data });
   } catch (error: any) {
     console.error('Error fetching notes:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -60,15 +50,12 @@ router.get('/:id', async (req, res) => {
 // 创建笔记
 router.post('/', async (req, res) => {
   try {
-    const { title, content, images } = req.body;
-    const userId = req.headers['x-session'] as string || '';
+    const { title, content } = req.body;
     if (!title) {
       return res.status(400).json({ success: false, error: 'Title is required' });
     }
     const client = getSupabaseClient();
-    const insertData: any = { title, content: content || '', images: images || '[]' };
-    if (userId) insertData.user_id = userId;
-    const { data, error } = await client.from('notes').insert(insertData).select();
+    const { data, error } = await client.from('notes').insert({ title, content: content || '' }).select();
     if (error) throw new Error(`插入失败: ${error.message}`);
     res.status(201).json({ success: true, data });
   } catch (error: any) {
@@ -81,10 +68,10 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, content, images } = req.body;
+    const { title, content } = req.body;
     const client = getSupabaseClient();
     const { data, error } = await client.from('notes')
-      .update({ title, content, images: images || '[]', updated_at: new Date().toISOString() })
+      .update({ title, content, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select();
     if (error) throw new Error(`更新失败: ${error.message}`);
