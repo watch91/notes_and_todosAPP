@@ -6,6 +6,7 @@ import versionRouter from "./routes/version.js";
 import feedbackRouter from "./routes/feedback.js";
 import commentsRouter from "./routes/comments.js";
 import uploadRouter from "./routes/upload.js";
+import userRouter from "./routes/user.js";
 
 const app = express();
 const port = process.env.PORT || 9091;
@@ -28,6 +29,7 @@ app.use('/api/v1/version', versionRouter);
 app.use('/api/v1/feedback', feedbackRouter);
 app.use('/api/v1/comments', commentsRouter);
 app.use('/api/v1/upload', uploadRouter);
+app.use('/api/v1/user', userRouter);
 
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}/`);

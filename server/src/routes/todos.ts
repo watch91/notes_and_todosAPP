@@ -24,7 +24,10 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Title is required' });
     }
     const client = getSupabaseClient();
-    const { data, error } = await client.from('todos').insert({ title, is_completed: false }).select();
+    const userId = req.headers['x-session'] as string || '';
+    const insertData: any = { title, is_completed: false };
+    if (userId) insertData.user_id = userId;
+    const { data, error } = await client.from('todos').insert(insertData).select();
     if (error) throw new Error(`插入失败: ${error.message}`);
     res.status(201).json({ success: true, data });
   } catch (error: any) {

@@ -59,10 +59,13 @@ export default function NoteEditPage() {
     if (!newComment.trim() || !params.id) return;
     setCommentLoading(true);
     try {
+      const session = await AsyncStorage.getItem('supabase_session');
+      const sessionData = session ? JSON.parse(session) : null;
+      const userId = sessionData?.user?.id;
       const res = await fetch(`${API_BASE}/api/v1/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ note_id: parseInt(params.id), content: newComment }),
+        body: JSON.stringify({ note_id: parseInt(params.id), content: newComment, user_id: userId }),
       });
       const data = await res.json();
       if (data.id) {
@@ -99,10 +102,13 @@ export default function NoteEditPage() {
           body: JSON.stringify({ title, content, images: JSON.stringify(images) }),
         });
       } else {
+        const session = await AsyncStorage.getItem('supabase_session');
+        const sessionData = session ? JSON.parse(session) : null;
+        const userId = sessionData?.user?.id;
         await fetch(`${API_BASE}/api/v1/notes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, content, images: JSON.stringify(images) }),
+          body: JSON.stringify({ title, content, images: JSON.stringify(images), user_id: userId }),
         });
       }
       router.back();
