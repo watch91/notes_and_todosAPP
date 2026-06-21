@@ -8,9 +8,9 @@
 
 储存前端软件当前软件版本号的路径：
 ```
-/workspace/projects/client/utils/version.ts
+/client/utils/version.ts
 ```
 储存前端软件“使用帮助”功能中Q&A内容的路径：
 ```
-/workspace/projects/client/screens/help.tsx
+/client/screens/help.tsx
 ```
