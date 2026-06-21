@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, TextInput, Alert, Linking } from 'react-native';
 import { useState } from 'react';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
