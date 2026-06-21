@@ -100,6 +100,17 @@ export default function ProfilePage() {
             <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
           </TouchableOpacity>
 
+          <TouchableOpacity onPress={() => Linking.openURL('https://vlink.cc/xiaokeke205')} className="flex-row items-center px-5 py-4 border-b border-gray-100">
+            <View className="w-10 h-10 rounded-xl bg-pink-50 items-center justify-center">
+              <FontAwesome6 name="heart" size={16} color="#EC4899" />
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="font-medium text-foreground">爱心捐助</Text>
+              <Text className="text-xs text-muted mt-0.5">支持软件开发</Text>
+            </View>
+            <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
+          </TouchableOpacity>
+
           <TouchableOpacity className="flex-row items-center px-5 py-4">
             <View className="w-10 h-10 rounded-xl bg-amber-50 items-center justify-center">
               <FontAwesome6 name="star" size={16} color="#F59E0B" />
