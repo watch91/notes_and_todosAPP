@@ -105,7 +105,7 @@ export default function ProfilePage() {
               <FontAwesome6 name="heart" size={16} color="#EC4899" />
             </View>
             <View className="flex-1 ml-3">
-              <Text className="font-medium text-foreground">爱心捐助</Text>
+              <Text className="font-medium text-foreground">打赏</Text>
               <Text className="text-xs text-muted mt-0.5">支持软件开发</Text>
             </View>
             <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
