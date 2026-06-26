@@ -101,8 +101,8 @@ export default function ProfilePage() {
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => Linking.openURL('https://vlink.cc/xiaokeke205')} className="flex-row items-center px-5 py-4 border-b border-gray-100">
-            <View className="w-10 h-10 rounded-xl bg-pink-50 items-center justify-center">
-              <FontAwesome6 name="heart" size={16} color="#EC4899" />
+            <View className="w-10 h-10 rounded-xl bg-orange-50 items-center justify-center">
+              <FontAwesome6 name="mug-hot" size={16} color="#EA580C" />
             </View>
             <View className="flex-1 ml-3">
               <Text className="font-medium text-foreground">打赏</Text>
