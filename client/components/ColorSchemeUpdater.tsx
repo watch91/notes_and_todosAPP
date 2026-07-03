@@ -1,6 +1,7 @@
 import { Fragment, useEffect, type ReactNode } from 'react';
 import { ColorSchemeName, Platform } from 'react-native';
 import { Uniwind } from 'uniwind'
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // system: 跟随系统变化
 // light: 固定为 light 主题
@@ -9,7 +10,20 @@ const DEFAULT_THEME: 'system' | 'light' | 'dark' = 'system'
 
 const WebOnlyColorSchemeUpdater = function ({ children }: { children?: ReactNode }) {
   useEffect(() => {
-    Uniwind.setTheme(DEFAULT_THEME);
+    // 从 AsyncStorage 读取用户设置的主题
+    const loadTheme = async () => {
+      try {
+        const saved = await AsyncStorage.getItem('theme_mode');
+        if (saved === 'light' || saved === 'dark' || saved === 'system') {
+          Uniwind.setTheme(saved);
+        } else {
+          Uniwind.setTheme(DEFAULT_THEME);
+        }
+      } catch (e) {
+        Uniwind.setTheme(DEFAULT_THEME);
+      }
+    };
+    loadTheme();
   }, []);
 
   useEffect(() => {

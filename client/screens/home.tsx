@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, RefreshControl, TextInput } from 'react-native';
+import { useState, useCallback, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, RefreshControl, TextInput, Modal, Linking } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
@@ -47,6 +48,37 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<HomeItem[] | null>(null);
   const [屏蔽过滤开关, set屏蔽过滤开关] = useState(false);
+  const [showAgreement, setShowAgreement] = useState(false);
+
+  const checkAgreement = async () => {
+    try {
+      const agreed = await AsyncStorage.getItem('agreement_agreed');
+      if (!agreed) {
+        setShowAgreement(true);
+      }
+    } catch (e) {
+      console.error('Failed to check agreement:', e);
+    }
+  };
+
+  const handleAgree = async () => {
+    try {
+      await AsyncStorage.setItem('agreement_agreed', 'true');
+      setShowAgreement(false);
+    } catch (e) {
+      console.error('Failed to save agreement:', e);
+    }
+  };
+
+  const handleDisagree = () => {
+    // 不同意则退出应用或限制使用
+    Linking.openURL('https://www.baidu.com');
+  };
+
+  // 检查是否需要显示协议
+  useEffect(() => {
+    checkAgreement();
+  }, []);
 
   const fetchData = useCallback(async () => {
     try {
@@ -366,6 +398,47 @@ export default function HomePage() {
             </TouchableOpacity>
           </TouchableOpacity>
         )}
+
+        {/* Agreement Modal */}
+        <Modal visible={showAgreement} transparent animationType="fade">
+          <View className="flex-1 bg-black/60 items-center justify-center p-6">
+            <View className="bg-white rounded-2xl p-6 w-full max-w-md">
+              <Text className="text-xl font-bold text-center text-foreground mb-4">
+                用户使用协议
+              </Text>
+              <ScrollView className="max-h-80">
+                <Text className="text-sm text-muted leading-6">
+                  欢迎使用本笔记待办APP！在使用本应用全部功能前，请您认真阅读本《用户使用协议》。您的注册、登录、浏览、使用等任何操作，即表示您已充分阅读、理解并同意接受本协议全部条款。{'\n\n'}
+                  <Text className="font-bold text-foreground">一、服务说明{'\n'}</Text>
+                  本应用为用户提供笔记记录、待办事项管理等服务。本服务仅供个人非商业用途使用。{'\n\n'}
+                  <Text className="font-bold text-foreground">二、用户账号与使用规范{'\n'}</Text>
+                  用户需妥善保管账号安全，不得利用本应用发布违法违规内容。{'\n\n'}
+                  <Text className="font-bold text-foreground">三、用户内容与知识产权{'\n'}</Text>
+                  用户创建的内容知识产权归用户本人所有。本应用的界面、代码等知识产权归我方所有。{'\n\n'}
+                  <Text className="font-bold text-foreground">四、权限与隐私保护{'\n'}</Text>
+                  我方严格保护用户个人信息与笔记隐私。{'\n\n'}
+                  <Text className="font-bold text-foreground">五、数据存储与风险{'\n'}</Text>
+                  电子数据存在固有风险，建议用户定期备份重要数据。{'\n\n'}
+                  完整协议请在「我的-设置-用户使用协议」中查看。
+                </Text>
+              </ScrollView>
+              <View className="flex-row gap-3 mt-5">
+                <TouchableOpacity
+                  className="flex-1 bg-gray-200 rounded-xl py-3"
+                  onPress={handleDisagree}
+                >
+                  <Text className="text-center text-gray-600 font-medium">不同意</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className="flex-1 bg-indigo-500 rounded-xl py-3"
+                  onPress={handleAgree}
+                >
+                  <Text className="text-center text-white font-medium">同意并继续</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </Screen>
   );

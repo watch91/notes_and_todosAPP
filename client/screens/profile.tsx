@@ -67,6 +67,17 @@ export default function ProfilePage() {
             elevation: 2,
           }}
         >
+          <TouchableOpacity onPress={() => router.push('/settings')} className="flex-row items-center px-5 py-4 border-b border-gray-100">
+            <View className="w-10 h-10 rounded-xl bg-purple-50 items-center justify-center">
+              <FontAwesome6 name="gear" size={16} color="#8B5CF6" />
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="font-medium text-foreground">设置</Text>
+              <Text className="text-xs text-muted mt-0.5">主题、协议等</Text>
+            </View>
+            <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
+          </TouchableOpacity>
+
           <TouchableOpacity onPress={handleDevModeClick} className="flex-row items-center px-5 py-4 border-b border-gray-100">
             <View className="w-10 h-10 rounded-xl bg-gray-50 items-center justify-center">
               <FontAwesome6 name="code" size={16} color="#6B7280" />
