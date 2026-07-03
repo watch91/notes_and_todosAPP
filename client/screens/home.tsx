@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, RefreshControl, TextInput, Modal, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, RefreshControl, TextInput, Modal, Linking, Alert, Platform } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
@@ -49,6 +49,9 @@ export default function HomePage() {
   const [searchResults, setSearchResults] = useState<HomeItem[] | null>(null);
   const [屏蔽过滤开关, set屏蔽过滤开关] = useState(false);
   const [showAgreement, setShowAgreement] = useState(false);
+  const [deleteConfirmItem, setDeleteConfirmItem] = useState<HomeItem | null>(null);
+  const [deleteConfirmStep, setDeleteConfirmStep] = useState<'first' | 'second' | 'input' | null>(null);
+  const [deleteInputTitle, setDeleteInputTitle] = useState('');
 
   const checkAgreement = async () => {
     try {
@@ -125,13 +128,81 @@ export default function HomePage() {
     setRefreshing(false);
   };
 
-  const handleDeleteNote = async (id: number) => {
+  const handleDeleteNote = (item: HomeItem) => {
+    const contentLength = item.subtitle?.length || 0;
+    
+    setDeleteConfirmItem(item);
+    
+    // 内容 <= 10字：只需一次确认
+    if (contentLength <= 10) {
+      setDeleteConfirmStep('first');
+      return;
+    }
+    
+    // 内容 > 10字且 <= 50字：需要两次确认
+    if (contentLength <= 50) {
+      setDeleteConfirmStep('first');
+      return;
+    }
+    
+    // 内容 > 50字：需要两次确认 + 输入标题
+    setDeleteConfirmStep('first');
+  };
+
+  const handleDeleteConfirmFirst = () => {
+    if (!deleteConfirmItem) return;
+    const contentLength = deleteConfirmItem.subtitle?.length || 0;
+    
+    // 内容 <= 10字，第一次确认后直接删除
+    if (contentLength <= 10) {
+      executeDelete();
+      return;
+    }
+    
+    // 内容 > 10字，需要第二次确认
+    setDeleteConfirmStep('second');
+  };
+
+  const handleDeleteConfirmSecond = () => {
+    if (!deleteConfirmItem) return;
+    const contentLength = deleteConfirmItem.subtitle?.length || 0;
+    
+    // 内容 <= 50字，第二次确认后直接删除
+    if (contentLength <= 50) {
+      executeDelete();
+      return;
+    }
+    
+    // 内容 > 50字，需要输入标题确认
+    setDeleteConfirmStep('input');
+  };
+
+  const handleDeleteConfirmInput = () => {
+    if (!deleteConfirmItem) return;
+    if (deleteInputTitle === deleteConfirmItem.title) {
+      executeDelete();
+    } else {
+      Alert.alert('错误', '标题不匹配，请重新输入');
+      setDeleteInputTitle('');
+    }
+  };
+
+  const executeDelete = async () => {
+    if (!deleteConfirmItem) return;
     try {
-      await fetch(`${API_BASE}/api/v1/notes/${id}`, { method: 'DELETE' });
+      await fetch(`${API_BASE}/api/v1/notes/${deleteConfirmItem.id}`, { method: 'DELETE' });
       fetchData();
     } catch (error) {
       console.error('Error deleting note:', error);
+    } finally {
+      resetDeleteConfirm();
     }
+  };
+
+  const resetDeleteConfirm = () => {
+    setDeleteConfirmItem(null);
+    setDeleteConfirmStep(null);
+    setDeleteInputTitle('');
   };
 
   const handleToggleTodo = async (todo: HomeItem) => {
@@ -328,7 +399,7 @@ export default function HomePage() {
                       <Text className="text-xs text-muted mt-2 ml-10">{formatDate(item.created_at)}</Text>
                     </View>
                     <TouchableOpacity
-                      onPress={() => item.type === 'note' ? handleDeleteNote(item.id) : handleDeleteTodo(item.id)}
+                      onPress={() => item.type === 'note' ? handleDeleteNote(item) : handleDeleteTodo(item.id)}
                       className="p-2 ml-2"
                     >
                       <FontAwesome6 name="trash" size={14} color="#EF4444" />
@@ -398,6 +469,94 @@ export default function HomePage() {
             </TouchableOpacity>
           </TouchableOpacity>
         )}
+
+        {/* Delete Confirm Modal */}
+        <Modal visible={deleteConfirmStep !== null} transparent animationType="fade">
+          <View className="flex-1 bg-black/60 items-center justify-center p-6">
+            <View className="bg-white rounded-2xl p-6 w-full max-w-sm">
+              {deleteConfirmStep === 'first' && (
+                <>
+                  <Text className="text-lg font-bold text-center text-foreground mb-4">
+                    确认删除
+                  </Text>
+                  <Text className="text-center text-muted mb-6">确认要删除吗？</Text>
+                  <View className="flex-row gap-3">
+                    <TouchableOpacity
+                      className="flex-1 bg-gray-200 rounded-xl py-3"
+                      onPress={resetDeleteConfirm}
+                    >
+                      <Text className="text-center text-gray-600 font-medium">取消</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="flex-1 bg-red-500 rounded-xl py-3"
+                      onPress={handleDeleteConfirmFirst}
+                    >
+                      <Text className="text-center text-white font-medium">确认</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+              {deleteConfirmStep === 'second' && (
+                <>
+                  <Text className="text-lg font-bold text-center text-foreground mb-4">
+                    再次确认
+                  </Text>
+                  <Text className="text-center text-muted mb-6">确认要删除吗？</Text>
+                  <View className="flex-row gap-3">
+                    <TouchableOpacity
+                      className="flex-1 bg-gray-200 rounded-xl py-3"
+                      onPress={resetDeleteConfirm}
+                    >
+                      <Text className="text-center text-gray-600 font-medium">取消</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="flex-1 bg-red-500 rounded-xl py-3"
+                      onPress={handleDeleteConfirmSecond}
+                    >
+                      <Text className="text-center text-white font-medium">确认</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+              {deleteConfirmStep === 'input' && deleteConfirmItem && (
+                <>
+                  <Text className="text-lg font-bold text-center text-foreground mb-4">
+                    输入标题确认
+                  </Text>
+                  <Text className="text-center text-muted mb-4">
+                    请输入笔记标题以确认删除
+                  </Text>
+                  <View className="bg-gray-100 rounded-xl px-4 py-3 mb-2">
+                    <Text className="text-sm text-muted">正确标题：</Text>
+                    <Text className="font-medium text-foreground">{deleteConfirmItem.title}</Text>
+                  </View>
+                  <TextInput
+                    className="bg-gray-100 rounded-xl px-4 py-3 text-foreground mb-6"
+                    placeholder="请输入笔记标题"
+                    placeholderTextColor="#9CA3AF"
+                    value={deleteInputTitle}
+                    onChangeText={setDeleteInputTitle}
+                    style={{ outline: 'none' }}
+                  />
+                  <View className="flex-row gap-3">
+                    <TouchableOpacity
+                      className="flex-1 bg-gray-200 rounded-xl py-3"
+                      onPress={resetDeleteConfirm}
+                    >
+                      <Text className="text-center text-gray-600 font-medium">取消</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="flex-1 bg-red-500 rounded-xl py-3"
+                      onPress={handleDeleteConfirmInput}
+                    >
+                      <Text className="text-center text-white font-medium">确认删除</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
+          </View>
+        </Modal>
 
         {/* Agreement Modal */}
         <Modal visible={showAgreement} transparent animationType="fade">
