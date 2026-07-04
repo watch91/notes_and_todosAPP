@@ -5,6 +5,7 @@ import todosRouter from "./routes/todos.js";
 import versionRouter from "./routes/version.js";
 import feedbackRouter from "./routes/feedback.js";
 import commentsRouter from "./routes/comments.js";
+import publicApiRouter from "./routes/public-api.js";
 import { startDailyNotesTask } from "./tasks/daily-notes.js";
 
 const app = express();
@@ -27,6 +28,7 @@ app.use('/api/v1/todos', todosRouter);
 app.use('/api/v1/version', versionRouter);
 app.use('/api/v1/feedback', feedbackRouter);
 app.use('/api/v1/comments', commentsRouter);
+app.use('/api/public', publicApiRouter);
 
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}/`);

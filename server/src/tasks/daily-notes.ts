@@ -61,7 +61,7 @@ async function generateNoteWithAI(topic: string): Promise<{ title: string; conte
     const config = new Config();
     const client = new LLMClient(config);
 
-    const messages = [
+    const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
       {
         role: 'system',
         content: '你是一个知识渊博的科普作者，擅长用通俗易懂的语言解释复杂概念。请生成一篇关于指定主题的科普/学习/教程类笔记。',
