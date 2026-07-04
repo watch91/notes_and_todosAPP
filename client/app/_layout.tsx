@@ -4,6 +4,7 @@ import { LogBox } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { Provider } from '@/components/Provider';
 import { useAutoUpdate } from '@/hooks/useAutoUpdate';
+import { logger } from '@/utils/logger';
 
 import '../global.css';
 
@@ -17,6 +18,9 @@ function UpdateChecker() {
 }
 
 export default function RootLayout() {
+  // 记录应用启动日志
+  logger.info('系统', '应用启动');
+  
   return (
     <Provider>
       <UpdateChecker />

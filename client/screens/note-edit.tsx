@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingVi
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
+import { logger } from '@/utils/logger';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 const DEEPSEEK_API_KEY = 'sk-5034bff7138d409dbf94f94c1be9440e';
@@ -25,7 +26,10 @@ export default function NoteEditPage() {
 
   useEffect(() => {
     if (params.id) {
+      logger.info('笔记编辑', `打开笔记: ID=${params.id}`);
       fetchNote(params.id);
+    } else {
+      logger.info('笔记编辑', '创建新笔记');
     }
   }, [params.id]);
 
@@ -44,7 +48,7 @@ export default function NoteEditPage() {
         setComments(commentData);
       }
     } catch (error) {
-      console.error('Error fetching note:', error);
+      logger.error('笔记编辑', error instanceof Error ? error : new Error(String(error)));
     }
   };
 
@@ -86,12 +90,14 @@ export default function NoteEditPage() {
     setLoading(true);
     try {
       if (isEditing && params.id) {
+        logger.info('笔记编辑', `修改笔记: ${title}`);
         await fetch(`${API_BASE}/api/v1/notes/${params.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title, content }),
         });
       } else {
+        logger.info('笔记编辑', `创建笔记: ${title}`);
         await fetch(`${API_BASE}/api/v1/notes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -100,7 +106,7 @@ export default function NoteEditPage() {
       }
       router.back();
     } catch (error) {
-      console.error('Error saving note:', error);
+      logger.error('笔记编辑', error instanceof Error ? error : new Error(String(error)));
     } finally {
       setLoading(false);
     }

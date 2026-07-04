@@ -5,6 +5,7 @@ import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from '@/utils/logger';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
@@ -85,6 +86,7 @@ export default function HomePage() {
 
   const fetchData = useCallback(async () => {
     try {
+      logger.info('首页', '开始获取笔记和待办数据');
       const [notesRes, todosRes] = await Promise.all([
         fetch(`${API_BASE}/api/v1/notes`),
         fetch(`${API_BASE}/api/v1/todos`),
@@ -111,8 +113,9 @@ export default function HomePage() {
       setItems([...notes, ...todos].sort((a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       ));
+      logger.info('首页', `数据加载完成，共${notes.length}条笔记，${todos.length}条待办`);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      logger.error('首页', error instanceof Error ? error : new Error(String(error)));
     }
   }, []);
 
@@ -190,10 +193,11 @@ export default function HomePage() {
   const executeDelete = async () => {
     if (!deleteConfirmItem) return;
     try {
+      logger.info('首页', `删除笔记: ${deleteConfirmItem.title}`);
       await fetch(`${API_BASE}/api/v1/notes/${deleteConfirmItem.id}`, { method: 'DELETE' });
       fetchData();
     } catch (error) {
-      console.error('Error deleting note:', error);
+      logger.error('首页', error instanceof Error ? error : new Error(String(error)));
     } finally {
       resetDeleteConfirm();
     }
@@ -207,6 +211,7 @@ export default function HomePage() {
 
   const handleToggleTodo = async (todo: HomeItem) => {
     try {
+      logger.info('首页', `${todo.is_completed ? '取消完成' : '完成'}待办: ${todo.title}`);
       await fetch(`${API_BASE}/api/v1/todos/${todo.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -214,16 +219,17 @@ export default function HomePage() {
       });
       fetchData();
     } catch (error) {
-      console.error('Error toggling todo:', error);
+      logger.error('首页', error instanceof Error ? error : new Error(String(error)));
     }
   };
 
   const handleDeleteTodo = async (id: number) => {
     try {
+      logger.info('首页', `删除待办: ID=${id}`);
       await fetch(`${API_BASE}/api/v1/todos/${id}`, { method: 'DELETE' });
       fetchData();
     } catch (error) {
-      console.error('Error deleting todo:', error);
+      logger.error('首页', error instanceof Error ? error : new Error(String(error)));
     }
   };
 

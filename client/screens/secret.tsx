@@ -5,6 +5,7 @@ import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
+import { logger } from '@/utils/logger';
 
 interface SecretNote {
   id: string;
@@ -163,6 +164,7 @@ export default function SecretPage() {
 
     if (editingItem?.type === 'note') {
       if (editingItem.data) {
+        logger.info('小秘密', `修改秘密笔记: ${editTitle}`);
         const updated = notes.map(n =>
           n.id === editingItem.data!.id
             ? { ...n, title: editTitle, content: editContent, images: editImages, updatedAt: new Date().toISOString() }
@@ -171,6 +173,7 @@ export default function SecretPage() {
         setNotes(updated);
         await saveData(updated, todos);
       } else {
+        logger.info('小秘密', `创建秘密笔记: ${editTitle}`);
         const newNote: SecretNote = {
           id: Date.now().toString(),
           title: editTitle,
@@ -185,12 +188,14 @@ export default function SecretPage() {
       }
     } else {
       if (editingItem?.data) {
+        logger.info('小秘密', `修改秘密待办: ${editTitle}`);
         const updated = todos.map(t =>
           t.id === editingItem.data!.id ? { ...t, title: editTitle } : t
         );
         setTodos(updated);
         await saveData(notes, updated);
       } else {
+        logger.info('小秘密', `创建秘密待办: ${editTitle}`);
         const newTodo: SecretTodo = {
           id: Date.now().toString(),
           title: editTitle,

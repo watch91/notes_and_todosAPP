@@ -5,6 +5,7 @@ import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Uniwind } from 'uniwind';
+import { logger } from '@/utils/logger';
 
 type ThemeMode = 'system' | 'light' | 'dark';
 
@@ -14,6 +15,7 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    logger.info('设置', '进入设置页面');
     loadThemeSetting();
   }, []);
 
@@ -24,19 +26,21 @@ export default function SettingsPage() {
         setThemeMode(saved);
       }
     } catch (e) {
-      console.error('Failed to load theme setting:', e);
+      logger.error('设置', e instanceof Error ? e : new Error(String(e)));
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleThemeChange = async (mode: ThemeMode) => {
+    const modeNames = { system: '跟随系统', light: '浅色模式', dark: '深色模式' };
+    logger.info('设置', `切换主题: ${modeNames[mode]}`);
     setThemeMode(mode);
     Uniwind.setTheme(mode);
     try {
       await AsyncStorage.setItem('theme_mode', mode);
     } catch (e) {
-      console.error('Failed to save theme setting:', e);
+      logger.error('设置', e instanceof Error ? e : new Error(String(e)));
     }
   };
 

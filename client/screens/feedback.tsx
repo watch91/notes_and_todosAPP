@@ -1,7 +1,8 @@
 import { Screen } from '@/components/Screen';
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Switch } from 'react-native';
 import { router } from 'expo-router';
+import { logger } from '@/utils/logger';
 
 const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
@@ -9,6 +10,7 @@ export default function FeedbackPage() {
   const [content, setContent] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [attachLogs, setAttachLogs] = useState(true);
 
   const handleSend = async () => {
     if (!content.trim()) {
@@ -18,19 +20,32 @@ export default function FeedbackPage() {
 
     setSending(true);
     try {
+      let feedbackContent = content.trim();
+      
+      // 如果用户选择附上日志
+      if (attachLogs) {
+        const logs = await logger.getLogs(3);
+        if (logs) {
+          feedbackContent += '\n\n--- 应用日志 (最近3天) ---\n' + logs;
+        }
+      }
+
       const response = await fetch(`${EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: content.trim() }),
+        body: JSON.stringify({ content: feedbackContent }),
       });
 
       if (response.ok) {
+        logger.info('反馈', '用户提交反馈成功');
         setSent(true);
         setContent('');
       } else {
+        logger.error('反馈', new Error(`发送失败: ${response.status}`));
         Alert.alert('失败', '发送失败，请稍后重试');
       }
     } catch (error) {
+      logger.error('反馈', error instanceof Error ? error : new Error(String(error)));
       Alert.alert('失败', '网络错误，请检查网络连接');
     } finally {
       setSending(false);
@@ -74,6 +89,20 @@ export default function FeedbackPage() {
             value={content}
             onChangeText={setContent}
           />
+
+          {/* 附上日志选项 */}
+          <View className="flex-row items-center justify-between bg-white rounded-2xl p-4 mt-3">
+            <View className="flex-1">
+              <Text className="text-foreground font-medium">附上应用日志</Text>
+              <Text className="text-muted text-xs mt-1">帮助开发者更快定位问题（最近3天）</Text>
+            </View>
+            <Switch
+              value={attachLogs}
+              onValueChange={setAttachLogs}
+              trackColor={{ false: '#D1D5DB', true: '#818CF8' }}
+              thumbColor={attachLogs ? '#4F46E5' : '#F4F4F5'}
+            />
+          </View>
 
           <TouchableOpacity
             className="bg-indigo-500 rounded-2xl py-4 items-center mt-4"
