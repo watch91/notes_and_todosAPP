@@ -1,10 +1,11 @@
-import { View, Text, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, TextInput, Alert, ScrollView } from 'react-native';
 import { useState, useCallback } from 'react';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from '@/utils/logger';
 
 const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
@@ -13,6 +14,8 @@ type ConfigKey = 'download_url' | 'new_version';
 export default function DevModePage() {
   const router = useSafeRouter();
   const [showModal, setShowModal] = useState(false);
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [logContent, setLogContent] = useState('');
   const [modalType, setModalType] = useState<ConfigKey>('download_url');
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
@@ -56,6 +59,27 @@ export default function DevModePage() {
   const handleSave = () => {
     saveConfig(modalType, inputValue);
     setShowModal(false);
+  };
+
+  const handleViewLogs = async () => {
+    const logs = await logger.getLogs();
+    setLogContent(logs || '暂无日志');
+    setShowLogModal(true);
+  };
+
+  const handleClearLogs = async () => {
+    Alert.alert('确认', '确定要清空所有日志吗？', [
+      { text: '取消', style: 'cancel' },
+      {
+        text: '清空',
+        style: 'destructive',
+        onPress: async () => {
+          await logger.clear();
+          setLogContent('暂无日志');
+          Alert.alert('成功', '日志已清空');
+        },
+      },
+    ]);
   };
 
   return (
@@ -106,6 +130,31 @@ export default function DevModePage() {
           </TouchableOpacity>
         </View>
 
+        {/* 日志查看 */}
+        <View className="mx-5 mt-4 bg-white rounded-2xl overflow-hidden shadow-sm"
+          style={{
+            shadowColor: '#4F46E5',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 8,
+            elevation: 2,
+          }}
+        >
+          <TouchableOpacity
+            onPress={handleViewLogs}
+            className="flex-row items-center px-5 py-4"
+          >
+            <View className="w-10 h-10 rounded-xl bg-purple-50 items-center justify-center">
+              <FontAwesome6 name="file-lines" size={16} color="#8B5CF6" />
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="font-medium text-foreground">查看日志</Text>
+              <Text className="text-xs text-muted mt-0.5">查看应用运行日志</Text>
+            </View>
+            <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
+          </TouchableOpacity>
+        </View>
+
         <Modal visible={showModal} transparent animationType="slide">
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -141,6 +190,36 @@ export default function DevModePage() {
               </View>
             </View>
           </KeyboardAvoidingView>
+        </Modal>
+
+        {/* 日志查看 Modal */}
+        <Modal visible={showLogModal} transparent animationType="slide">
+          <View className="flex-1 bg-black/50 justify-end">
+            <View className="bg-white rounded-t-3xl p-5" style={{ maxHeight: '80%' }}>
+              <View className="flex-row items-center mb-4">
+                <Text className="text-lg font-bold flex-1">应用日志</Text>
+                <TouchableOpacity onPress={handleClearLogs} className="mr-4">
+                  <FontAwesome6 name="trash" size={18} color="#EF4444" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowLogModal(false)}>
+                  <FontAwesome6 name="xmark" size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView className="bg-gray-100 rounded-xl p-3" style={{ maxHeight: 400 }}>
+                <Text className="text-xs text-gray-700 font-mono" selectable>
+                  {logContent}
+                </Text>
+              </ScrollView>
+
+              <TouchableOpacity
+                className="mt-4 rounded-xl py-4 bg-indigo-500"
+                onPress={() => setShowLogModal(false)}
+              >
+                <Text className="text-white text-center font-bold">关闭</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </Modal>
       </View>
     </Screen>
