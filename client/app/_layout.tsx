@@ -12,8 +12,8 @@ LogBox.ignoreLogs([
 ]);
 
 function UpdateChecker() {
-  useAutoUpdate();
-  return null;
+  const { DownloadModal } = useAutoUpdate();
+  return <DownloadModal />;
 }
 
 export default function RootLayout() {
