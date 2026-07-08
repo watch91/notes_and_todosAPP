@@ -44,7 +44,7 @@ export default function TodoEditPage() {
     <Screen>
       <KeyboardAvoidingView
         className="flex-1 bg-background"
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {/* Header */}
         <View className="px-5 pt-4 pb-3 flex-row items-center justify-between">

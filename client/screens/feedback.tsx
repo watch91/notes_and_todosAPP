@@ -76,7 +76,7 @@ export default function FeedbackPage() {
     <Screen>
       <KeyboardAvoidingView
         className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View className="flex-1 p-5">
           <Text className="text-lg font-bold text-foreground mb-2">问题描述</Text>

@@ -417,7 +417,7 @@ export default function SecretPage() {
         <Modal visible={modalVisible} animationType="slide">
           <KeyboardAvoidingView
             className="flex-1 bg-white"
-            behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={0}
           >
             {/* Header */}

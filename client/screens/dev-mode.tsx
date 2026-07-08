@@ -157,7 +157,7 @@ export default function DevModePage() {
 
         <Modal visible={showModal} transparent animationType="slide">
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ flex: 1 }}
           >
             <View className="flex-1 bg-black/50 justify-end">

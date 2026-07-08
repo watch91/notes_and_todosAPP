@@ -149,7 +149,7 @@ export default function NoteEditPage() {
     <Screen>
       <KeyboardAvoidingView
         className="flex-1 bg-background"
-        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
         {/* Header */}
