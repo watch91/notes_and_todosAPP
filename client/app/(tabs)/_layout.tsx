@@ -56,6 +56,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="creative-hall"
+        options={{
+          title: '创意大厅',
+          tabBarIcon: ({ color }) => (
+            <FontAwesome6 name="lightbulb" size={20} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: '我的',
