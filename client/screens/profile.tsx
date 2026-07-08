@@ -52,7 +52,7 @@ export default function ProfilePage() {
               <FontAwesome6 name="user" size={28} color="#4F46E5" />
             </View>
             <View className="ml-4">
-              <Text className="text-lg font-bold text-foreground">我的笔记</Text>
+              <Text className="text-lg font-bold text-foreground">笔记</Text>
               <Text className="text-sm text-muted">记录生活每一刻</Text>
             </View>
           </View>

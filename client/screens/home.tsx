@@ -282,7 +282,7 @@ export default function HomePage() {
       <View className="flex-1 bg-background">
         {/* Header */}
         <View className="px-5 pt-4 pb-3">
-          <Text className="text-2xl font-bold text-foreground">我的记录</Text>
+          <Text className="text-2xl font-bold text-foreground">笔记广场</Text>
           <Text className="text-sm text-muted mt-1">记录生活点滴</Text>
         </View>
 
