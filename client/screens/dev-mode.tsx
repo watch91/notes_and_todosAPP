@@ -113,6 +113,7 @@ export default function DevModePage() {
           <Text className="text-xl font-bold text-foreground ml-2">开发者模式</Text>
         </View>
 
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="mx-5 mt-4 bg-white rounded-2xl overflow-hidden shadow-sm"
           style={{
             shadowColor: '#4F46E5',
@@ -200,6 +201,7 @@ export default function DevModePage() {
             <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
           </TouchableOpacity>
         </View>
+        </ScrollView>
 
         <Modal visible={showModal} transparent animationType="slide">
           <KeyboardAvoidingView
