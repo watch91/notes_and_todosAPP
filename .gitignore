@@ -11,3 +11,4 @@ logs/
 *.tsbuildinfo
 node-compile-cache/
 .cozeproj/reduction
+.codegraph
