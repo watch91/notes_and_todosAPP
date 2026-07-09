@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, ImageBackground, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { useState, useEffect } from 'react';
 import { Screen } from '@/components/Screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -11,19 +11,9 @@ interface StarWisdomCache {
 
 const CACHE_KEY = '@starry_wisdom_cache';
 
-// 生成星空背景的渐变颜色
+// 星空背景（纯代码实现）
 const StarryBackground = () => (
-  <View style={StyleSheet.absoluteFill}>
-    <ImageBackground
-      source={require('@/assets/starry-bg.png')}
-      style={StyleSheet.absoluteFill}
-      resizeMode="cover"
-    >
-      <View style={styles.overlay} />
-    </ImageBackground>
-    {/* 如果没有背景图，使用渐变 */}
-    <View style={[StyleSheet.absoluteFill, styles.gradientBg]} />
-  </View>
+  <View style={[StyleSheet.absoluteFill, styles.gradientBg]} />
 );
 
 export default function StarryWisdomScreen() {
