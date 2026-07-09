@@ -238,7 +238,7 @@ export default function StarryWisdomScreen() {
               <TouchableOpacity
                 style={styles.saveTodoButton}
                 onPress={() => {
-                  router.push('/todo-edit', { content: quote });
+                  router.push('/todo-edit', { content: `星垂悟心：${quote}` });
                 }}
                 activeOpacity={0.7}
               >
