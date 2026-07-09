@@ -234,7 +234,18 @@ export default function StarryWisdomScreen() {
 
           {/* 底部提示 */}
           {showQuote && (
-            <Text style={styles.footerText}>明日再来，聆听新的星语</Text>
+            <>
+              <TouchableOpacity
+                style={styles.saveTodoButton}
+                onPress={() => {
+                  router.push('/todo-edit', { content: quote });
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.saveTodoButtonText}>📝 保存到待办</Text>
+              </TouchableOpacity>
+              <Text style={styles.footerText}>明日再来，聆听新的星语</Text>
+            </>
           )}
         </View>
       </View>
@@ -336,6 +347,20 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
     lineHeight: 24,
+    fontWeight: '500',
+  },
+  saveTodoButton: {
+    marginTop: 30,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(100, 150, 255, 0.3)',
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: 'rgba(150, 200, 255, 0.5)',
+  },
+  saveTodoButtonText: {
+    fontSize: 14,
+    color: '#fff',
     fontWeight: '500',
   },
   footerText: {

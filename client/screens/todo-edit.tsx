@@ -8,8 +8,8 @@ const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9
 
 export default function TodoEditPage() {
   const router = useSafeRouter();
-  const params = useSafeSearchParams<{ id?: number; title?: string }>();
-  const [title, setTitle] = useState(params.title || '');
+  const params = useSafeSearchParams<{ id?: number; title?: string; content?: string }>();
+  const [title, setTitle] = useState(params.title || params.content || '');
   const [loading, setLoading] = useState(false);
 
   const isEditing = !!params.id;
