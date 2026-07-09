@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native
 import { useState, useEffect } from 'react';
 import { Screen } from '@/components/Screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeRouter } from '@/hooks/useSafeRouter';
 
 interface StarWisdomCache {
   quote: string;
@@ -17,6 +18,7 @@ const StarryBackground = () => (
 );
 
 export default function StarryWisdomScreen() {
+  const router = useSafeRouter();
   const [quote, setQuote] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [showQuote, setShowQuote] = useState(false);
@@ -181,6 +183,15 @@ export default function StarryWisdomScreen() {
         {/* 背景 */}
         <StarryBackground />
         
+        {/* 返回按钮 */}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.backButtonText}>{'<'}</Text>
+        </TouchableOpacity>
+        
         {/* 装饰星星 */}
         <View style={styles.decorStar1}>
           <Text style={styles.decorStarText}>✦</Text>
@@ -234,6 +245,24 @@ export default function StarryWisdomScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 200, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  backButtonText: {
+    fontSize: 24,
+    color: '#FFFACD', // 淡黄色
+    fontWeight: 'bold',
+    marginTop: -2,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
