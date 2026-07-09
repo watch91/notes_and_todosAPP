@@ -82,6 +82,27 @@ export default function DevModePage() {
     ]);
   };
 
+  const handleClearStarryWisdomCache = async () => {
+    Alert.alert('确认', '确定要清空星垂悟心缓存吗？\n清空后用户可重新生成今日星语', [
+      { text: '取消', style: 'cancel' },
+      {
+        text: '清空',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await AsyncStorage.removeItem('starryWisdomQuote');
+            await AsyncStorage.removeItem('starryWisdomDate');
+            Alert.alert('成功', '星垂悟心缓存已清空');
+            logger.info('dev-mode', '清空星垂悟心缓存');
+          } catch (error) {
+            Alert.alert('错误', '清空缓存失败');
+            logger.error('dev-mode', `清空星垂悟心缓存失败: ${error}`);
+          }
+        },
+      },
+    ]);
+  };
+
   return (
     <Screen>
       <View className="flex-1 bg-background">
@@ -150,6 +171,31 @@ export default function DevModePage() {
             <View className="flex-1 ml-3">
               <Text className="font-medium text-foreground">查看日志</Text>
               <Text className="text-xs text-muted mt-0.5">查看应用运行日志</Text>
+            </View>
+            <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
+          </TouchableOpacity>
+        </View>
+
+        {/* 星垂悟心缓存管理 */}
+        <View className="mx-5 mt-4 bg-white rounded-2xl overflow-hidden shadow-sm"
+          style={{
+            shadowColor: '#4F46E5',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 8,
+            elevation: 2,
+          }}
+        >
+          <TouchableOpacity
+            onPress={handleClearStarryWisdomCache}
+            className="flex-row items-center px-5 py-4"
+          >
+            <View className="w-10 h-10 rounded-xl bg-yellow-50 items-center justify-center">
+              <FontAwesome6 name="star" size={16} color="#F59E0B" />
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="font-medium text-foreground">清空星垂悟心缓存</Text>
+              <Text className="text-xs text-muted mt-0.5">清除后可重新生成今日星语</Text>
             </View>
             <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
           </TouchableOpacity>
