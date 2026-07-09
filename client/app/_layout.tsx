@@ -39,6 +39,7 @@ export default function RootLayout() {
         <Stack.Screen name="dev-mode" />
         <Stack.Screen name="settings" />
         <Stack.Screen name="agreement" />
+        <Stack.Screen name="starry-wisdom" />
       </Stack>
       <Toast />
     </Provider>
