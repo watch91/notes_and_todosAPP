@@ -1,10 +1,11 @@
-import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, Dimensions, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, Dimensions } from 'react-native';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { Screen } from '@/components/Screen';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
 import { Animated } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { Audio } from 'expo-av';
+import { FontAwesome6 } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
@@ -24,23 +25,139 @@ const DecorativeStar = ({ style, size = 4, opacity = 0.6 }: { style?: any; size?
   <View style={[styles.decorativeStar, { width: size, height: size, opacity }, style]} />
 );
 
+// 音乐播放器组件
+const MusicPlayer = () => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [position, setPosition] = useState(0);
+  const soundRef = useRef<Audio.Sound | null>(null);
+
+  // TODO: 用户提供的音乐文件路径
+  const MUSIC_URI = ''; // 等待用户提供音乐文件
+
+  useEffect(() => {
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isPlaying) {
+      interval = setInterval(async () => {
+        if (soundRef.current) {
+          const status = await soundRef.current.getStatusAsync();
+          if (status.isLoaded) {
+            setPosition(status.positionMillis || 0);
+            if (status.didJustFinish) {
+              setIsPlaying(false);
+              await soundRef.current.setPositionAsync(0);
+              setPosition(0);
+            }
+          }
+        }
+      }, 500);
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying]);
+
+  const togglePlay = async () => {
+    if (!MUSIC_URI) {
+      // 音乐文件未配置
+      return;
+    }
+
+    try {
+      if (!soundRef.current) {
+        setIsLoading(true);
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: MUSIC_URI },
+          { shouldPlay: false, isLooping: false },
+          (status) => {
+            if (status.isLoaded) {
+              setDuration(status.durationMillis || 0);
+            }
+          }
+        );
+        soundRef.current = sound;
+        setIsLoading(false);
+      }
+
+      if (isPlaying) {
+        await soundRef.current.pauseAsync();
+        setIsPlaying(false);
+      } else {
+        const status = await soundRef.current.getStatusAsync();
+        if (status.isLoaded && status.positionMillis >= (status.durationMillis || 0)) {
+          await soundRef.current.setPositionAsync(0);
+          setPosition(0);
+        }
+        await soundRef.current.playAsync();
+        setIsPlaying(true);
+      }
+    } catch (error) {
+      console.error('播放错误:', error);
+      setIsLoading(false);
+    }
+  };
+
+  const formatTime = (ms: number) => {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const progress = duration > 0 ? position / duration : 0;
+
+  if (!MUSIC_URI) {
+    return null; // 音乐文件未配置时不显示播放器
+  }
+
+  return (
+    <View style={styles.playerContainer}>
+      <LinearGradient
+        colors={['rgba(74, 20, 140, 0.8)', 'rgba(123, 31, 162, 0.6)']}
+        style={styles.playerCard}
+      >
+        {/* 唱片图标 */}
+        <View style={styles.albumArt}>
+          <FontAwesome6 name="compact-disc" size={40} color="#fff" />
+        </View>
+
+        {/* 播放控制 */}
+        <View style={styles.playerControls}>
+          <TouchableOpacity onPress={togglePlay} disabled={isLoading} style={styles.playButton}>
+            <FontAwesome6 
+              name={isLoading ? 'spinner' : isPlaying ? 'pause' : 'play'} 
+              size={24} 
+              color="#fff" 
+            />
+          </TouchableOpacity>
+
+          {/* 进度条 */}
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+            </View>
+            <View style={styles.timeContainer}>
+              <Text style={styles.timeText}>{formatTime(position)}</Text>
+              <Text style={styles.timeText}>{formatTime(duration)}</Text>
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
+    </View>
+  );
+};
+
 export default function CreativeHallScreen() {
   const router = useSafeRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
-  const [showPlayer, setShowPlayer] = useState(false);
-
-  // 检查是否为2026年7月10日
-  useEffect(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1; // getMonth() 返回 0-11
-    const day = now.getDate();
-    
-    if (year === 2026 && month === 7 && day === 10) {
-      setShowPlayer(true);
-    }
-  }, []);
 
   useEffect(() => {
     Animated.parallel([
@@ -118,37 +235,13 @@ export default function CreativeHallScreen() {
             ))}
           </View>
 
+          {/* 音乐播放器 */}
+          <MusicPlayer />
+
           {/* 底部装饰 */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>~ 更多功能即将上线 ~</Text>
           </View>
-
-          {/* 网易云音乐播放器 - 仅在2026年7月10日显示 */}
-          {showPlayer && (
-            <View style={styles.playerContainer}>
-              {Platform.OS === 'web' ? (
-                <iframe
-                  src="https://music.163.com/outchain/player?type=2&id=1973665667&auto=1&height=66"
-                  width={330}
-                  height={86}
-                  frameBorder="no"
-                  style={{ border: 'none', borderRadius: 12 }}
-                  allow="autoplay"
-                />
-              ) : (
-                <WebView
-                  source={{ uri: 'https://music.163.com/outchain/player?type=2&id=1973665667&auto=1&height=66' }}
-                  style={styles.player}
-                  javaScriptEnabled={true}
-                  domStorageEnabled={true}
-                  mediaPlaybackRequiresUserAction={false}
-                  allowsInlineMediaPlayback={true}
-                  scrollEnabled={false}
-                  mixedContentMode="compatibility"
-                />
-              )}
-            </View>
-          )}
         </ScrollView>
       </View>
     </Screen>
@@ -197,50 +290,48 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.7)',
     marginTop: 8,
-    letterSpacing: 2,
   },
   grid: {
-    padding: 20,
-    alignItems: 'center',
+    paddingHorizontal: 20,
+    gap: 16,
   },
   cardWrapper: {
-    width: width - 60,
-    marginBottom: 20,
+    borderRadius: 24,
+    overflow: 'hidden',
     shadowColor: '#9c27b0',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
-    shadowRadius: 12,
+    shadowRadius: 16,
     elevation: 8,
   },
   card: {
-    borderRadius: 24,
-    padding: 30,
+    padding: 24,
     alignItems: 'center',
+    borderRadius: 24,
+    position: 'relative',
     overflow: 'hidden',
   },
   cardGlow: {
     position: 'absolute',
-    width: 150,
-    height: 150,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 75,
-    top: -30,
-    right: -30,
-  },
-  iconContainer: {
+    top: -20,
+    right: -20,
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  iconContainer: {
+    width: 70,
+    height: 70,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   icon: {
-    width: 50,
-    height: 50,
+    width: 45,
+    height: 45,
   },
   cardTitle: {
     fontSize: 20,
@@ -249,13 +340,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    textShadowRadius: 2,
   },
   cardDesc: {
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 18,
   },
   enterHint: {
     marginTop: 16,
@@ -263,32 +354,73 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   enterText: {
     fontSize: 12,
     color: '#fff',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   footer: {
     padding: 30,
     alignItems: 'center',
   },
   footerText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
-    letterSpacing: 2,
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontStyle: 'italic',
   },
+  // 音乐播放器样式
   playerContainer: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    marginTop: 20,
+  },
+  playerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    gap: 16,
+  },
+  albumArt: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  player: {
-    width: 330,
-    height: 86,
-    backgroundColor: 'transparent',
-    borderRadius: 12,
+  playerControls: {
+    flex: 1,
+    gap: 8,
+  },
+  playButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressContainer: {
+    gap: 4,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 2,
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  timeText: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
   },
 });
