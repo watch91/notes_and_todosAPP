@@ -44,6 +44,34 @@ const MusicPlayer = () => {
     };
   }, []);
 
+  // 自动播放音乐
+  useEffect(() => {
+    const autoPlay = async () => {
+      if (!MUSIC_URI) return;
+      
+      try {
+        setIsLoading(true);
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: MUSIC_URI },
+          { shouldPlay: true, isLooping: false },
+          (status) => {
+            if (status.isLoaded) {
+              setDuration(status.durationMillis || 0);
+              setIsLoading(false);
+            }
+          }
+        );
+        soundRef.current = sound;
+        setIsPlaying(true);
+      } catch (error) {
+        console.error('自动播放错误:', error);
+        setIsLoading(false);
+      }
+    };
+    
+    autoPlay();
+  }, []);
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isPlaying) {
