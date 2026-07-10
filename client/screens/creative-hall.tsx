@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, Dimensions, Platform } from 'react-native';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { Screen } from '@/components/Screen';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -126,15 +126,26 @@ export default function CreativeHallScreen() {
           {/* 网易云音乐播放器 - 仅在2026年7月10日显示 */}
           {showPlayer && (
             <View style={styles.playerContainer}>
-              <WebView
-                source={{ uri: 'https://music.163.com/outchain/player?type=2&id=1973665667&auto=1&height=66' }}
-                style={styles.player}
-                javaScriptEnabled={true}
-                domStorageEnabled={true}
-                mediaPlaybackRequiresUserAction={false}
-                allowsInlineMediaPlayback={true}
-                scrollEnabled={false}
-              />
+              {Platform.OS === 'web' ? (
+                <iframe
+                  src="https://music.163.com/outchain/player?type=2&id=1973665667&auto=1&height=66"
+                  width={330}
+                  height={86}
+                  frameBorder="no"
+                  style={{ border: 'none', borderRadius: 12 }}
+                  allow="autoplay"
+                />
+              ) : (
+                <WebView
+                  source={{ uri: 'https://music.163.com/outchain/player?type=2&id=1973665667&auto=1&height=66' }}
+                  style={styles.player}
+                  javaScriptEnabled={true}
+                  domStorageEnabled={true}
+                  mediaPlaybackRequiresUserAction={false}
+                  allowsInlineMediaPlayback={true}
+                  scrollEnabled={false}
+                />
+              )}
             </View>
           )}
         </ScrollView>
