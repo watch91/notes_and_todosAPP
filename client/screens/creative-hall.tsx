@@ -33,8 +33,8 @@ const MusicPlayer = () => {
   const [position, setPosition] = useState(0);
   const soundRef = useRef<Audio.Sound | null>(null);
 
-  // TODO: 用户提供的音乐文件路径
-  const MUSIC_URI = ''; // 等待用户提供音乐文件
+  // 音乐文件 URL
+  const MUSIC_URI = 'https://coze-coding-project.tos.coze.site/coze_storage_7637904258242707508/%E6%B5%B7%E5%B1%BF%E4%BD%A0%EF%BC%88%E5%88%9B%E6%84%8F%E5%A4%A7%E5%8E%85%E5%BD%A9%E8%9B%8B%E9%9F%B3%E4%B9%90%EF%BC%89.mp3?sign=1846755407-d1aab08080-0-2be24455441391e1062adb32b34d4e0e0611de4f753860b3ce81c9c85ad17eea';
 
   useEffect(() => {
     return () => {
