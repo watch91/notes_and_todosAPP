@@ -144,6 +144,7 @@ export default function CreativeHallScreen() {
                   mediaPlaybackRequiresUserAction={false}
                   allowsInlineMediaPlayback={true}
                   scrollEnabled={false}
+                  mixedContentMode="compatibility"
                 />
               )}
             </View>
