@@ -24,7 +24,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         "backgroundColor": "#ffffff"
       },
       "package": `com.anonymous.x${projectId || '0'}`,
-      "softwareKeyboardLayoutMode": "adjustResize"
+      "softwareKeyboardLayoutMode": "adjustResize",
+      "usesCleartextTraffic": true
     },
     "web": {
       "bundler": "metro",
