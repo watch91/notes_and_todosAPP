@@ -2,8 +2,9 @@ import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, Dimensions
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { Screen } from '@/components/Screen';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated } from 'react-native';
+import { WebView } from 'react-native-webview';
 
 const { width } = Dimensions.get('window');
 
@@ -27,6 +28,19 @@ export default function CreativeHallScreen() {
   const router = useSafeRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const [showPlayer, setShowPlayer] = useState(false);
+
+  // 检查是否为2026年7月10日
+  useEffect(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1; // getMonth() 返回 0-11
+    const day = now.getDate();
+    
+    if (year === 2026 && month === 7 && day === 10) {
+      setShowPlayer(true);
+    }
+  }, []);
 
   useEffect(() => {
     Animated.parallel([
@@ -108,6 +122,21 @@ export default function CreativeHallScreen() {
           <View style={styles.footer}>
             <Text style={styles.footerText}>~ 更多功能即将上线 ~</Text>
           </View>
+
+          {/* 网易云音乐播放器 - 仅在2026年7月10日显示 */}
+          {showPlayer && (
+            <View style={styles.playerContainer}>
+              <WebView
+                source={{ uri: 'https://music.163.com/outchain/player?type=2&id=1973665667&auto=1&height=66' }}
+                style={styles.player}
+                javaScriptEnabled={true}
+                domStorageEnabled={true}
+                mediaPlaybackRequiresUserAction={false}
+                allowsInlineMediaPlayback={true}
+                scrollEnabled={false}
+              />
+            </View>
+          )}
         </ScrollView>
       </View>
     </Screen>
@@ -238,5 +267,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.5)',
     letterSpacing: 2,
+  },
+  playerContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    alignItems: 'center',
+  },
+  player: {
+    width: 330,
+    height: 86,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
   },
 });
