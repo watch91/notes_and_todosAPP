@@ -119,6 +119,9 @@ const MusicPlayer = () => {
 
   return (
     <View style={styles.playerContainer}>
+      {/* 卡片上方的文字 */}
+      <Text style={styles.playerQuote}>为何你偏要仓促抽身远行，我苦苦哀求，求你别离开我</Text>
+      
       <LinearGradient
         colors={['rgba(74, 20, 140, 0.8)', 'rgba(123, 31, 162, 0.6)']}
         style={styles.playerCard}
@@ -126,6 +129,12 @@ const MusicPlayer = () => {
         {/* 唱片图标 */}
         <View style={styles.albumArt}>
           <FontAwesome6 name="compact-disc" size={40} color="#fff" />
+        </View>
+
+        {/* 歌曲信息 */}
+        <View style={styles.songInfo}>
+          <Text style={styles.songTitle}>海屿你</Text>
+          <Text style={styles.songArtist}>马也_Crabbit</Text>
         </View>
 
         {/* 播放控制 */}
@@ -373,39 +382,63 @@ const styles = StyleSheet.create({
   playerContainer: {
     paddingHorizontal: 20,
     marginTop: 20,
+    alignItems: 'center',
+  },
+  playerQuote: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    marginBottom: 12,
+    fontStyle: 'italic',
+    paddingHorizontal: 20,
   },
   playerCard: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     borderRadius: 16,
-    gap: 16,
+    gap: 12,
+    width: '100%',
   },
   albumArt: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  playerControls: {
+  songInfo: {
     flex: 1,
+    gap: 2,
+  },
+  songTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  songArtist: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  playerControls: {
     gap: 8,
+    alignItems: 'center',
   },
   playButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   progressContainer: {
+    width: 120,
     gap: 4,
   },
   progressBar: {
-    height: 4,
+    height: 3,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 2,
     overflow: 'hidden',
