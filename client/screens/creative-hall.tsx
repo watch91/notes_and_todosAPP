@@ -195,6 +195,19 @@ export default function CreativeHallScreen() {
   const router = useSafeRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const [showPlayer, setShowPlayer] = useState(false);
+
+  // 检查是否为2026年7月10日（彩蛋时间）
+  useEffect(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1; // getMonth() 返回 0-11
+    const day = now.getDate();
+    
+    if (year === 2026 && month === 7 && day === 10) {
+      setShowPlayer(true);
+    }
+  }, []);
 
   useEffect(() => {
     Animated.parallel([
@@ -272,8 +285,8 @@ export default function CreativeHallScreen() {
             ))}
           </View>
 
-          {/* 音乐播放器 */}
-          <MusicPlayer />
+          {/* 音乐播放器 - 仅在2026年7月10日显示 */}
+          {showPlayer && <MusicPlayer />}
 
           {/* 底部装饰 */}
           <View style={styles.footer}>
