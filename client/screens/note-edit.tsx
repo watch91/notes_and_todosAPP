@@ -35,7 +35,6 @@ export default function NoteEditPage() {
   const [uploading, setUploading] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [selection, setSelection] = useState({ start: 0, end: 0 });
-  const [showEditModal, setShowEditModal] = useState(false);
   const contentInputRef = useRef<TextInput>(null);
 
   const isEditing = !!params.id;
@@ -104,6 +103,11 @@ export default function NoteEditPage() {
     } catch (error) {
       console.error('Error deleting comment:', error);
     }
+  };
+
+  // 处理文本选择变化
+  const handleSelectionChange = (event: any) => {
+    setSelection(event.nativeEvent.selection);
   };
 
   // Markdown 工具栏插入功能
@@ -442,61 +446,32 @@ export default function NoteEditPage() {
                   </TouchableOpacity>
                 </View>
                 {/* Markdown 渲染预览 */}
-                <TouchableOpacity
-                  onPress={() => setShowEditModal(true)}
-                  activeOpacity={0.7}
-                  className="min-h-[250px]"
-                >
-                  <Markdown style={markdownStyles}>{content || '点击编辑内容...'}</Markdown>
-                </TouchableOpacity>
-                
-                {/* 编辑提示 */}
-                <View className="mt-3 p-3 bg-blue-50 rounded-lg flex-row items-center">
-                  <FontAwesome6 name="info-circle" size={14} color="#3B82F6" />
-                  <Text className="text-sm text-blue-600 ml-2">点击内容区域进行编辑</Text>
+                <View className="min-h-[100px] mb-3 p-3 bg-gray-50 rounded-lg">
+                  <Text className="text-xs text-gray-500 mb-2">预览：</Text>
+                  <Markdown style={markdownStyles}>{content || '暂无内容'}</Markdown>
                 </View>
-              </>
-            )}
-          </View>
-
-          {/* Markdown 编辑 Modal */}
-          <Modal
-            visible={showEditModal}
-            animationType="slide"
-            transparent
-            onRequestClose={() => setShowEditModal(false)}
-          >
-            <View className="flex-1 bg-black/50 justify-end">
-              <View className="bg-white rounded-t-3xl max-h-[80%]">
-                <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
-                  <Text className="text-lg font-bold text-foreground">编辑内容</Text>
-                  <TouchableOpacity onPress={() => setShowEditModal(false)}>
-                    <FontAwesome6 name="check" size={20} color="#3B82F6" />
-                  </TouchableOpacity>
-                </View>
+                {/* 内容输入框 */}
                 <TextInput
                   value={content}
                   onChangeText={setContent}
+                  onSelectionChange={handleSelectionChange}
                   placeholder="输入笔记内容（支持 Markdown 语法）..."
                   placeholderTextColor="#9CA3AF"
                   multiline
                   textAlignVertical="top"
-                  className="text-base text-foreground p-4 min-h-[300px]"
+                  className="text-base text-foreground bg-background border border-border rounded-xl p-3 min-h-[200px]"
                   style={{ outline: 'none' }}
-                  autoFocus
                 />
-                <View className="p-4 border-t border-gray-200">
-                  <Text className="text-xs text-gray-500 mb-2">支持的语法：</Text>
-                  <View className="flex-row flex-wrap gap-2">
-                    <Text className="text-xs text-gray-600">**加粗**</Text>
-                    <Text className="text-xs text-gray-600">*斜体*</Text>
-                    <Text className="text-xs text-gray-600">~~删除线~~</Text>
-                    <Text className="text-xs text-gray-600">--- 分割线</Text>
-                  </View>
+                {/* 语法提示 */}
+                <View className="mt-2 flex-row flex-wrap gap-2">
+                  <Text className="text-xs text-gray-500">**加粗**</Text>
+                  <Text className="text-xs text-gray-500">*斜体*</Text>
+                  <Text className="text-xs text-gray-500">~~删除线~~</Text>
+                  <Text className="text-xs text-gray-500">--- 分割线</Text>
                 </View>
-              </View>
-            </View>
-          </Modal>
+              </>
+            )}
+          </View>
 
           {/* Pictures Section */}
           {(pictures.length > 0 || (!isReadOnly && params.id)) && (
