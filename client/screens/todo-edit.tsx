@@ -3,7 +3,6 @@ import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
-import DateTimePicker from '@react-native-community/datetimepicker';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
@@ -12,7 +11,6 @@ export default function TodoEditPage() {
   const params = useSafeSearchParams<{ id?: number; title?: string; content?: string; due_date?: string }>();
   const [title, setTitle] = useState(params.title || params.content || '');
   const [dueDate, setDueDate] = useState<Date | null>(params.due_date ? new Date(params.due_date) : null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const isEditing = !!params.id;
@@ -44,10 +42,12 @@ export default function TodoEditPage() {
     }
   };
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      setDueDate(selectedDate);
+  const handleWebDateChange = (e: any) => {
+    const value = e.target.value;
+    if (value) {
+      setDueDate(new Date(value));
+    } else {
+      setDueDate(null);
     }
   };
 
@@ -62,6 +62,16 @@ export default function TodoEditPage() {
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
     return `${year}-${month}-${day} ${hours}:${minutes}`;
+  };
+
+  const formatDateTimeLocal = (date: Date | null) => {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
   return (
@@ -129,11 +139,21 @@ export default function TodoEditPage() {
                 </View>
                 <View className="ml-3 flex-1">
                   <Text className="text-sm text-muted">任务时间（选填）</Text>
-                  <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-                    <Text className="text-base text-foreground mt-1">
-                      {dueDate ? formatDate(dueDate) : '点击设置时间'}
-                    </Text>
-                  </TouchableOpacity>
+                  {Platform.OS === 'web' ? (
+                    <input
+                      type="datetime-local"
+                      value={formatDateTimeLocal(dueDate)}
+                      onChange={handleWebDateChange}
+                      className="mt-1 text-base text-foreground bg-transparent border-none outline-none"
+                      style={{ color: '#1F2937', fontSize: '16px' }}
+                    />
+                  ) : (
+                    <TouchableOpacity onPress={() => {}}>
+                      <Text className="text-base text-foreground mt-1">
+                        {dueDate ? formatDate(dueDate) : '点击设置时间'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
               {dueDate && (
@@ -148,17 +168,6 @@ export default function TodoEditPage() {
             {isEditing ? '修改你的待办事项' : '添加一个新的待办事项'}
           </Text>
         </View>
-
-        {/* 日期选择器 */}
-        {showDatePicker && (
-          <DateTimePicker
-            value={dueDate || new Date()}
-            mode="datetime"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={handleDateChange}
-            locale="zh-CN"
-          />
-        )}
       </KeyboardAvoidingView>
     </Screen>
   );
