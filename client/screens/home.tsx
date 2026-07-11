@@ -363,6 +363,8 @@ export default function HomePage() {
                   onPress={() => {
                     if (item.type === 'note') {
                       router.push('/note-edit', { id: item.id, title: item.title, content: items.find(i => i.id === item.id && i.type === 'note')?.subtitle || '' });
+                    } else if (item.type === 'todo') {
+                      router.push('/todo-edit', { id: item.id, title: item.title });
                     }
                   }}
                   className="bg-white rounded-2xl p-4 shadow-sm"
