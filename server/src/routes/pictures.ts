@@ -5,9 +5,8 @@ import { getSupabaseClient } from '../storage/database/supabase-client.js';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
-const supabase = getSupabaseClient();
 
-// 初始化对象存储
+// 初始化 S3Storage
 const storage = new S3Storage({
   endpointUrl: process.env.COZE_BUCKET_ENDPOINT_URL,
   accessKey: '',
@@ -17,7 +16,7 @@ const storage = new S3Storage({
 });
 
 // 上传图片
-router.post('/upload', upload.single('image'), async (req, res) => {
+router.post('/', upload.single('file'), async (req, res) => {
   try {
     const { note_id } = req.body;
     const file = req.file;
@@ -30,17 +29,15 @@ router.post('/upload', upload.single('image'), async (req, res) => {
       return res.status(400).json({ error: 'note_id is required' });
     }
 
-    // 生成文件名
-    const fileName = `pictures_from_users/${Date.now()}_${file.originalname}`;
-
     // 上传到对象存储
+    const fileName = `pictures_from_users/${Date.now()}_${file.originalname}`;
     const imageKey = await storage.uploadFile({
       fileContent: file.buffer,
       fileName,
       contentType: file.mimetype,
     });
 
-    // 生成一年后过期的 URL
+    // 生成1年后过期的签名URL
     const oneYearInSeconds = 365 * 24 * 60 * 60;
     const imageUrl = await storage.generatePresignedUrl({
       key: imageKey,
@@ -48,28 +45,19 @@ router.post('/upload', upload.single('image'), async (req, res) => {
     });
 
     // 保存到数据库
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('pictures')
       .insert({ note_id: parseInt(note_id), image_key: imageKey })
       .select()
       .single();
 
-    if (error) {
-      // 删除已上传的文件
-      await storage.deleteFile({ fileKey: imageKey });
-      throw error;
-    }
+    if (error) throw error;
 
-    res.json({
-      id: data.id,
-      note_id: data.note_id,
-      image_key: data.image_key,
-      image_url: imageUrl,
-      created_at: data.created_at,
-    });
+    res.json({ ...data, image_url: imageUrl });
   } catch (error) {
-    console.error('Upload error:', error);
-    res.status(500).json({ error: 'Failed to upload image' });
+    console.error('Upload picture error:', error);
+    res.status(500).json({ error: 'Failed to upload picture' });
   }
 });
 
@@ -78,33 +66,28 @@ router.get('/note/:noteId', async (req, res) => {
   try {
     const { noteId } = req.params;
 
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('pictures')
       .select('*')
-      .eq('note_id', parseInt(noteId))
+      .eq('note_id', noteId)
       .order('created_at', { ascending: true });
 
     if (error) throw error;
 
-    // 生成 URL
+    // 为每张图片生成签名URL
     const oneYearInSeconds = 365 * 24 * 60 * 60;
-    const pictures = await Promise.all(
-      data.map(async (pic: { id: number; note_id: number; image_key: string; created_at: string }) => {
-        const image_url = await storage.generatePresignedUrl({
+    const picturesWithUrls = await Promise.all(
+      data.map(async (pic: { image_key: string; id: number; note_id: number; created_at: string }) => {
+        const imageUrl = await storage.generatePresignedUrl({
           key: pic.image_key,
           expireTime: oneYearInSeconds,
         });
-        return {
-          id: pic.id,
-          note_id: pic.note_id,
-          image_key: pic.image_key,
-          image_url,
-          created_at: pic.created_at,
-        };
+        return { ...pic, image_url: imageUrl };
       })
     );
 
-    res.json(pictures);
+    res.json(picturesWithUrls);
   } catch (error) {
     console.error('Get pictures error:', error);
     res.status(500).json({ error: 'Failed to get pictures' });
@@ -116,11 +99,12 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
+    const supabase = getSupabaseClient();
     // 获取图片信息
     const { data: picture, error: getError } = await supabase
       .from('pictures')
       .select('*')
-      .eq('id', parseInt(id))
+      .eq('id', id)
       .single();
 
     if (getError || !picture) {
@@ -134,11 +118,11 @@ router.delete('/:id', async (req, res) => {
     const { error: deleteError } = await supabase
       .from('pictures')
       .delete()
-      .eq('id', parseInt(id));
+      .eq('id', id);
 
     if (deleteError) throw deleteError;
 
-    res.json({ success: true });
+    res.json({ message: 'Picture deleted successfully' });
   } catch (error) {
     console.error('Delete picture error:', error);
     res.status(500).json({ error: 'Failed to delete picture' });
