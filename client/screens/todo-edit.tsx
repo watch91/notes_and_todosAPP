@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Modal } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { DateTimePickerModal } from '@/components/DateTimePickerModal';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
@@ -57,23 +57,17 @@ export default function TodoEditPage() {
     setDueDate(null);
   };
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    // Android 上需要检查 event.type
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-      if (event.type === 'set' && selectedDate) {
-        setDueDate(selectedDate);
-      }
-    } else {
-      // iOS 上保持原有逻辑
-      if (selectedDate) {
-        setDueDate(selectedDate);
-      }
-    }
-  };
-
   const openDatePicker = () => {
     setShowDatePicker(true);
+  };
+
+  const handleDateConfirm = (date: Date) => {
+    setDueDate(date);
+    setShowDatePicker(false);
+  };
+
+  const handleDateCancel = () => {
+    setShowDatePicker(false);
   };
 
   const formatDate = (date: Date) => {
@@ -179,28 +173,27 @@ export default function TodoEditPage() {
               </View>
               {dueDate && (
                 <TouchableOpacity onPress={clearDate} className="p-2">
-                  <FontAwesome6 name="times-circle" size={20} color="#9CA3AF" />
+                  <FontAwesome6 name="circle-xmark" size={20} color="#9CA3AF" />
                 </TouchableOpacity>
               )}
             </View>
           </View>
-
-          {/* Android/iOS 日期选择器 */}
-          {Platform.OS !== 'web' && showDatePicker && (
-            <DateTimePicker
-              value={dueDate || new Date()}
-              mode="datetime"
-              display={Platform.OS === 'android' ? 'spinner' : 'default'}
-              onChange={handleDateChange}
-              is24Hour={true}
-            />
-          )}
 
           <Text className="text-sm text-muted mt-4 text-center">
             {isEditing ? '修改你的待办事项' : '添加一个新的待办事项'}
           </Text>
         </View>
       </KeyboardAvoidingView>
+
+      {/* 自定义日期时间选择器 */}
+      {Platform.OS !== 'web' && (
+        <DateTimePickerModal
+          visible={showDatePicker}
+          value={dueDate || new Date()}
+          onConfirm={handleDateConfirm}
+          onCancel={handleDateCancel}
+        />
+      )}
     </Screen>
   );
 }
