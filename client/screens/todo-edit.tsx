@@ -58,9 +58,17 @@ export default function TodoEditPage() {
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      setDueDate(selectedDate);
+    // Android 上需要检查 event.type
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+      if (event.type === 'set' && selectedDate) {
+        setDueDate(selectedDate);
+      }
+    } else {
+      // iOS 上保持原有逻辑
+      if (selectedDate) {
+        setDueDate(selectedDate);
+      }
     }
   };
 
@@ -182,8 +190,9 @@ export default function TodoEditPage() {
             <DateTimePicker
               value={dueDate || new Date()}
               mode="datetime"
-              display="default"
+              display={Platform.OS === 'android' ? 'spinner' : 'default'}
               onChange={handleDateChange}
+              is24Hour={true}
             />
           )}
 
