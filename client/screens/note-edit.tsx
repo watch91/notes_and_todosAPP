@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, Alert, Image } from 'react-native';
 import { FontAwesome6 } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import Markdown from 'react-native-markdown-display';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { logger } from '@/utils/logger';
@@ -34,8 +33,6 @@ export default function NoteEditPage() {
   const [pictures, setPictures] = useState<Picture[]>([]);
   const [uploading, setUploading] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
-  const [selection, setSelection] = useState({ start: 0, end: 0 });
-  const contentInputRef = useRef<TextInput>(null);
 
   const isEditing = !!params.id;
 
@@ -103,39 +100,6 @@ export default function NoteEditPage() {
     } catch (error) {
       console.error('Error deleting comment:', error);
     }
-  };
-
-  // 处理文本选择变化
-  const handleSelectionChange = (event: any) => {
-    setSelection(event.nativeEvent.selection);
-  };
-
-  // Markdown 工具栏插入功能
-  const insertMarkdown = (before: string, after: string = '') => {
-    const start = selection.start;
-    const end = selection.end;
-    const selectedText = content.substring(start, end);
-    const newContent = content.substring(0, start) + before + selectedText + after + content.substring(end);
-    setContent(newContent);
-    // 设置光标位置
-    setTimeout(() => {
-      if (selectedText) {
-        setSelection({ start: start + before.length, end: start + before.length + selectedText.length });
-      } else {
-        setSelection({ start: start + before.length, end: start + before.length });
-      }
-    }, 0);
-  };
-
-  const insertLinePrefix = (prefix: string) => {
-    const start = selection.start;
-    // 找到当前行的开始位置
-    const lineStart = content.lastIndexOf('\n', start - 1) + 1;
-    const newContent = content.substring(0, lineStart) + prefix + content.substring(lineStart);
-    setContent(newContent);
-    setTimeout(() => {
-      setSelection({ start: start + prefix.length, end: start + prefix.length });
-    }, 0);
   };
 
   const handleSave = async () => {
@@ -415,61 +379,18 @@ export default function NoteEditPage() {
             }}
           >
             {isReadOnly && isEditing ? (
-              <Markdown style={markdownStyles}>{content || '无内容'}</Markdown>
+              <Text className="text-base text-foreground whitespace-pre-wrap">{content || '无内容'}</Text>
             ) : (
-              <>
-                {/* Markdown 工具栏 */}
-                <View className="flex-row flex-wrap gap-2 mb-3 pb-3 border-b border-gray-100">
-                  <TouchableOpacity
-                    onPress={() => insertMarkdown('**', '**')}
-                    className="w-9 h-9 rounded-lg bg-gray-100 items-center justify-center"
-                  >
-                    <Text className="text-base font-bold text-gray-700">B</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => insertMarkdown('*', '*')}
-                    className="w-9 h-9 rounded-lg bg-gray-100 items-center justify-center"
-                  >
-                    <Text className="text-base italic text-gray-700">I</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => insertMarkdown('~~', '~~')}
-                    className="w-9 h-9 rounded-lg bg-gray-100 items-center justify-center"
-                  >
-                    <Text className="text-base line-through text-gray-700">S</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => insertLinePrefix('---')}
-                    className="w-9 h-9 rounded-lg bg-gray-100 items-center justify-center"
-                  >
-                    <View className="w-5 h-0.5 bg-gray-700" />
-                  </TouchableOpacity>
-                </View>
-                {/* Markdown 渲染预览 */}
-                <View className="min-h-[100px] mb-3 p-3 bg-gray-50 rounded-lg">
-                  <Text className="text-xs text-gray-500 mb-2">预览：</Text>
-                  <Markdown style={markdownStyles}>{content || '暂无内容'}</Markdown>
-                </View>
-                {/* 内容输入框 */}
-                <TextInput
-                  value={content}
-                  onChangeText={setContent}
-                  onSelectionChange={handleSelectionChange}
-                  placeholder="输入笔记内容（支持 Markdown 语法）..."
-                  placeholderTextColor="#9CA3AF"
-                  multiline
-                  textAlignVertical="top"
-                  className="text-base text-foreground bg-background border border-border rounded-xl p-3 min-h-[200px]"
-                  style={{ outline: 'none' }}
-                />
-                {/* 语法提示 */}
-                <View className="mt-2 flex-row flex-wrap gap-2">
-                  <Text className="text-xs text-gray-500">**加粗**</Text>
-                  <Text className="text-xs text-gray-500">*斜体*</Text>
-                  <Text className="text-xs text-gray-500">~~删除线~~</Text>
-                  <Text className="text-xs text-gray-500">--- 分割线</Text>
-                </View>
-              </>
+              <TextInput
+                value={content}
+                onChangeText={setContent}
+                placeholder="输入笔记内容..."
+                placeholderTextColor="#9CA3AF"
+                multiline
+                textAlignVertical="top"
+                className="text-base text-foreground min-h-[280px]"
+                style={{ outline: 'none' }}
+              />
             )}
           </View>
 
@@ -612,127 +533,3 @@ export default function NoteEditPage() {
     </Screen>
   );
 }
-
-const markdownStyles = {
-  body: {
-    color: '#1e293b',
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  heading1: {
-    color: '#1e293b',
-    fontSize: 28,
-    fontWeight: 'bold' as const,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  heading2: {
-    color: '#1e293b',
-    fontSize: 24,
-    fontWeight: 'bold' as const,
-    marginTop: 14,
-    marginBottom: 7,
-  },
-  heading3: {
-    color: '#1e293b',
-    fontSize: 20,
-    fontWeight: 'bold' as const,
-    marginTop: 12,
-    marginBottom: 6,
-  },
-  paragraph: {
-    color: '#1e293b',
-    fontSize: 16,
-    lineHeight: 24,
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  strong: {
-    fontWeight: 'bold' as const,
-    color: '#1e293b',
-  },
-  em: {
-    fontStyle: 'italic' as const,
-    color: '#1e293b',
-  },
-  s: {
-    textDecorationLine: 'line-through' as const,
-    color: '#64748b',
-  },
-  code: {
-    backgroundColor: '#f1f5f9',
-    color: '#e11d48',
-    fontFamily: 'monospace',
-    fontSize: 14,
-    paddingVertical: 2,
-    paddingHorizontal: 4,
-    borderRadius: 4,
-  },
-  code_inline: {
-    backgroundColor: '#f1f5f9',
-    color: '#e11d48',
-    fontFamily: 'monospace',
-    fontSize: 14,
-    paddingVertical: 2,
-    paddingHorizontal: 4,
-    borderRadius: 4,
-  },
-  fence: {
-    backgroundColor: '#f8fafc',
-    borderColor: '#e2e8f0',
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    marginVertical: 8,
-  },
-  list_item: {
-    flexDirection: 'row' as const,
-    alignItems: 'flex-start' as const,
-    marginVertical: 4,
-  },
-  bullet_list: {
-    marginLeft: 8,
-    marginVertical: 4,
-  },
-  ordered_list: {
-    marginLeft: 8,
-    marginVertical: 4,
-  },
-  link: {
-    color: '#3b82f6',
-    textDecorationLine: 'underline' as const,
-  },
-  blockquote: {
-    backgroundColor: '#f8fafc',
-    borderColor: '#3b82f6',
-    borderWidth: 2,
-    borderLeftWidth: 4,
-    borderRadius: 8,
-    padding: 12,
-    marginVertical: 8,
-    marginLeft: 0,
-  },
-  hr: {
-    backgroundColor: '#e2e8f0',
-    height: 1,
-    marginVertical: 16,
-  },
-  table: {
-    borderColor: '#e2e8f0',
-    borderWidth: 1,
-    borderRadius: 8,
-    marginVertical: 8,
-  },
-  th: {
-    backgroundColor: '#f8fafc',
-    borderColor: '#e2e8f0',
-    borderWidth: 1,
-    padding: 8,
-    fontWeight: 'bold' as const,
-  },
-  td: {
-    borderColor: '#e2e8f0',
-    borderWidth: 1,
-    padding: 8,
-  },
-};
