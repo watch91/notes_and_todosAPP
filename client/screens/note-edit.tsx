@@ -1,12 +1,20 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, Alert, Image } from 'react-native';
 import { FontAwesome6 } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { logger } from '@/utils/logger';
+import { createFormDataFile } from '@/utils';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 const DEEPSEEK_API_KEY = 'sk-5034bff7138d409dbf94f94c1be9440e';
+
+interface Picture {
+  id: number;
+  image_key: string;
+  created_at: string;
+}
 
 export default function NoteEditPage() {
   const router = useSafeRouter();
@@ -21,6 +29,8 @@ export default function NoteEditPage() {
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
+  const [pictures, setPictures] = useState<Picture[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const isEditing = !!params.id;
 
@@ -47,6 +57,12 @@ export default function NoteEditPage() {
       if (Array.isArray(commentData)) {
         setComments(commentData);
       }
+      // 获取图片
+      const picRes = await fetch(`${API_BASE}/api/v1/pictures/note/${id}`);
+      const picData = await picRes.json();
+      if (Array.isArray(picData)) {
+        setPictures(picData);
+      }
     } catch (error) {
       logger.error('笔记编辑', error instanceof Error ? error : new Error(String(error)));
     }
@@ -59,7 +75,7 @@ export default function NoteEditPage() {
       const res = await fetch(`${API_BASE}/api/v1/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ note_id: parseInt(params.id), content: newComment }),
+        body: JSON.stringify({ note_id: parseInt(String(params.id)), content: newComment }),
       });
       const data = await res.json();
       if (data.id) {
@@ -98,11 +114,22 @@ export default function NoteEditPage() {
         });
       } else {
         logger.info('笔记编辑', `创建笔记: ${title}`);
-        await fetch(`${API_BASE}/api/v1/notes`, {
+        const res = await fetch(`${API_BASE}/api/v1/notes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title, content }),
         });
+        const data = await res.json();
+        // 如果有图片，需要关联到新创建的笔记
+        if (data.id && pictures.length > 0) {
+          for (const pic of pictures) {
+            await fetch(`${API_BASE}/api/v1/pictures/${pic.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ note_id: data.id }),
+            });
+          }
+        }
       }
       router.back();
     } catch (error) {
@@ -144,6 +171,132 @@ export default function NoteEditPage() {
       setAiLoading(false);
     }
   };
+
+  const handlePickImage = async () => {
+    if (!params.id) {
+      Alert.alert('提示', '请先保存笔记后再添加图片');
+      return;
+    }
+
+    try {
+      // 请求相册权限
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('权限不足', '需要相册权限才能选择图片');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      logger.error('笔记编辑', error instanceof Error ? error : new Error(String(error)));
+      Alert.alert('错误', '选择图片失败');
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    if (!params.id) {
+      Alert.alert('提示', '请先保存笔记后再添加图片');
+      return;
+    }
+
+    try {
+      // 请求相机权限
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('权限不足', '需要相机权限才能拍照');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      logger.error('笔记编辑', error instanceof Error ? error : new Error(String(error)));
+      Alert.alert('错误', '拍照失败');
+    }
+  };
+
+  const uploadImage = async (uri: string) => {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      const formDataFile = await createFormDataFile(uri, `image_${Date.now()}.jpg`, 'image/jpeg');
+      formData.append('file', formDataFile as any);
+      formData.append('note_id', String(params.id));
+
+      const res = await fetch(`${API_BASE}/api/v1/pictures`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setPictures([...pictures, data.data]);
+        logger.info('笔记编辑', '图片上传成功');
+      } else {
+        Alert.alert('错误', data.error || '上传失败');
+      }
+    } catch (error) {
+      logger.error('笔记编辑', error instanceof Error ? error : new Error(String(error)));
+      Alert.alert('错误', '上传失败，请检查网络');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeletePicture = async (pic: Picture) => {
+    Alert.alert(
+      '确认删除',
+      '确定要删除这张图片吗？',
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '删除',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await fetch(`${API_BASE}/api/v1/pictures/${pic.id}`, { method: 'DELETE' });
+              setPictures(pictures.filter(p => p.id !== pic.id));
+              logger.info('笔记编辑', '图片删除成功');
+            } catch (error) {
+              logger.error('笔记编辑', error instanceof Error ? error : new Error(String(error)));
+              Alert.alert('错误', '删除失败');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const renderPicture = ({ item }: { item: Picture }) => (
+    <View className="relative mr-2 mb-2">
+      <Image
+        source={{ uri: `${API_BASE}/api/v1/pictures/preview/${item.image_key}` }}
+        style={{ width: 100, height: 100, borderRadius: 8 }}
+        resizeMode="cover"
+      />
+      {!isReadOnly && (
+        <TouchableOpacity
+          onPress={() => handleDeletePicture(item)}
+          className="absolute top-1 right-1 bg-red-500 rounded-full w-6 h-6 items-center justify-center"
+        >
+          <FontAwesome6 name="xmark" size={12} color="white" />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
 
   return (
     <Screen>
@@ -238,6 +391,64 @@ export default function NoteEditPage() {
               />
             )}
           </View>
+
+          {/* Pictures Section */}
+          {(pictures.length > 0 || (!isReadOnly && params.id)) && (
+            <View className="mt-4">
+              <Text className="text-base font-semibold text-foreground mb-3">图片附件 ({pictures.length})</Text>
+              
+              {/* Picture Grid */}
+              {pictures.length > 0 && (
+                <View className="flex-row flex-wrap">
+                  {pictures.map(pic => (
+                    <View key={pic.id} className="relative mr-2 mb-2">
+                      <Image
+                        source={{ uri: `${API_BASE}/api/v1/pictures/preview/${pic.image_key}` }}
+                        style={{ width: 100, height: 100, borderRadius: 8 }}
+                        resizeMode="cover"
+                      />
+                      {!isReadOnly && (
+                        <TouchableOpacity
+                          onPress={() => handleDeletePicture(pic)}
+                          className="absolute top-1 right-1 bg-red-500 rounded-full w-6 h-6 items-center justify-center"
+                        >
+                          <FontAwesome6 name="xmark" size={12} color="white" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Add Picture Buttons */}
+              {!isReadOnly && params.id && (
+                <View className="flex-row mt-2">
+                  <TouchableOpacity
+                    onPress={handlePickImage}
+                    disabled={uploading}
+                    className="flex-row items-center bg-indigo-100 px-4 py-2 rounded-xl mr-2"
+                  >
+                    {uploading ? (
+                      <ActivityIndicator size="small" color="#4F46E5" />
+                    ) : (
+                      <FontAwesome6 name="image" size={16} color="#4F46E5" />
+                    )}
+                    <Text className="text-indigo-600 ml-2 text-sm font-medium">
+                      {uploading ? '上传中...' : '选择图片'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleTakePhoto}
+                    disabled={uploading}
+                    className="flex-row items-center bg-indigo-100 px-4 py-2 rounded-xl"
+                  >
+                    <FontAwesome6 name="camera" size={16} color="#4F46E5" />
+                    <Text className="text-indigo-600 ml-2 text-sm font-medium">拍照</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
 
           {/* 评论区域 */}
           {isReadOnly && isEditing && (
