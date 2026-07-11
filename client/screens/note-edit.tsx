@@ -32,6 +32,7 @@ export default function NoteEditPage() {
   const [commentLoading, setCommentLoading] = useState(false);
   const [pictures, setPictures] = useState<Picture[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
   const isEditing = !!params.id;
 
@@ -403,11 +404,16 @@ export default function NoteEditPage() {
                 <View className="flex-row flex-wrap">
                   {pictures.map(pic => (
                     <View key={pic.id} className="relative mr-2 mb-2">
-                      <Image
-                        source={{ uri: pic.image_url }}
-                        style={{ width: 100, height: 100, borderRadius: 8 }}
-                        resizeMode="cover"
-                      />
+                      <TouchableOpacity
+                        onPress={() => isReadOnly && setFullscreenImage(pic.image_url)}
+                        disabled={!isReadOnly}
+                      >
+                        <Image
+                          source={{ uri: pic.image_url }}
+                          style={{ width: 100, height: 100, borderRadius: 8 }}
+                          resizeMode="cover"
+                        />
+                      </TouchableOpacity>
                       {!isReadOnly && (
                         <TouchableOpacity
                           onPress={() => handleDeletePicture(pic)}
@@ -504,6 +510,23 @@ export default function NoteEditPage() {
                 </ScrollView>
               )}
             </View>
+          </View>
+        </Modal>
+
+        {/* Fullscreen Image Modal */}
+        <Modal visible={!!fullscreenImage} transparent animationType="fade">
+          <View className="flex-1 bg-black justify-center items-center">
+            <TouchableOpacity
+              onPress={() => setFullscreenImage(null)}
+              className="absolute top-12 right-5 bg-black/50 rounded-full w-10 h-10 items-center justify-center z-10"
+            >
+              <FontAwesome6 name="xmark" size={20} color="white" />
+            </TouchableOpacity>
+            <Image
+              source={{ uri: fullscreenImage || '' }}
+              style={{ width: '100%', height: '80%' }}
+              resizeMode="contain"
+            />
           </View>
         </Modal>
       </KeyboardAvoidingView>
