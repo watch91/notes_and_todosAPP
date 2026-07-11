@@ -232,6 +232,7 @@ export default function NoteEditPage() {
 
   const uploadImage = async (uri: string) => {
     setUploading(true);
+    logger.info('图片上传', `开始上传: note_id=${params.id}, uri=${uri.substring(0, 50)}...`);
     try {
       const formData = new FormData();
       const formDataFile = await createFormDataFile(uri, `image_${Date.now()}.jpg`, 'image/jpeg');
@@ -246,12 +247,13 @@ export default function NoteEditPage() {
       const data = await res.json();
       if (data.success) {
         setPictures([...pictures, data.data]);
-        logger.info('笔记编辑', '图片上传成功');
+        logger.info('图片上传', `上传成功: id=${data.data.id}, image_key=${data.data.image_key}`);
       } else {
+        logger.error('图片上传', new Error(`上传失败: ${data.error || '未知错误'}`));
         Alert.alert('错误', data.error || '上传失败');
       }
     } catch (error) {
-      logger.error('笔记编辑', error instanceof Error ? error : new Error(String(error)));
+      logger.error('图片上传', error instanceof Error ? error : new Error(String(error)));
       Alert.alert('错误', '上传失败，请检查网络');
     } finally {
       setUploading(false);
@@ -268,12 +270,19 @@ export default function NoteEditPage() {
           text: '删除',
           style: 'destructive',
           onPress: async () => {
+            logger.info('图片删除', `开始删除: id=${pic.id}, image_key=${pic.image_key}`);
             try {
-              await fetch(`${API_BASE}/api/v1/pictures/${pic.id}`, { method: 'DELETE' });
-              setPictures(pictures.filter(p => p.id !== pic.id));
-              logger.info('笔记编辑', '图片删除成功');
+              const res = await fetch(`${API_BASE}/api/v1/pictures/${pic.id}`, { method: 'DELETE' });
+              const data = await res.json();
+              if (data.message || res.ok) {
+                setPictures(pictures.filter(p => p.id !== pic.id));
+                logger.info('图片删除', `删除成功: id=${pic.id}`);
+              } else {
+                logger.error('图片删除', new Error(`删除失败: ${data.error || '未知错误'}`));
+                Alert.alert('错误', data.error || '删除失败');
+              }
             } catch (error) {
-              logger.error('笔记编辑', error instanceof Error ? error : new Error(String(error)));
+              logger.error('图片删除', error instanceof Error ? error : new Error(String(error)));
               Alert.alert('错误', '删除失败');
             }
           },
