@@ -13,6 +13,7 @@ const DEEPSEEK_API_KEY = 'sk-5034bff7138d409dbf94f94c1be9440e';
 interface Picture {
   id: number;
   image_key: string;
+  image_url: string;
   created_at: string;
 }
 
@@ -283,7 +284,7 @@ export default function NoteEditPage() {
   const renderPicture = ({ item }: { item: Picture }) => (
     <View className="relative mr-2 mb-2">
       <Image
-        source={{ uri: `${API_BASE}/api/v1/pictures/preview/${item.image_key}` }}
+        source={{ uri: item.image_url }}
         style={{ width: 100, height: 100, borderRadius: 8 }}
         resizeMode="cover"
       />
@@ -403,7 +404,7 @@ export default function NoteEditPage() {
                   {pictures.map(pic => (
                     <View key={pic.id} className="relative mr-2 mb-2">
                       <Image
-                        source={{ uri: `${API_BASE}/api/v1/pictures/preview/${pic.image_key}` }}
+                        source={{ uri: pic.image_url }}
                         style={{ width: 100, height: 100, borderRadius: 8 }}
                         resizeMode="cover"
                       />
