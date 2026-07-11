@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
@@ -12,6 +13,7 @@ export default function TodoEditPage() {
   const [title, setTitle] = useState(params.title || params.content || '');
   const [dueDate, setDueDate] = useState<Date | null>(params.due_date ? new Date(params.due_date) : null);
   const [loading, setLoading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const isEditing = !!params.id;
 
@@ -53,6 +55,17 @@ export default function TodoEditPage() {
 
   const clearDate = () => {
     setDueDate(null);
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setDueDate(selectedDate);
+    }
+  };
+
+  const openDatePicker = () => {
+    setShowDatePicker(true);
   };
 
   const formatDate = (date: Date) => {
@@ -148,7 +161,7 @@ export default function TodoEditPage() {
                       style={{ color: '#1F2937', fontSize: '16px' }}
                     />
                   ) : (
-                    <TouchableOpacity onPress={() => {}}>
+                    <TouchableOpacity onPress={openDatePicker}>
                       <Text className="text-base text-foreground mt-1">
                         {dueDate ? formatDate(dueDate) : '点击设置时间'}
                       </Text>
@@ -163,6 +176,16 @@ export default function TodoEditPage() {
               )}
             </View>
           </View>
+
+          {/* Android/iOS 日期选择器 */}
+          {Platform.OS !== 'web' && showDatePicker && (
+            <DateTimePicker
+              value={dueDate || new Date()}
+              mode="datetime"
+              display="default"
+              onChange={handleDateChange}
+            />
+          )}
 
           <Text className="text-sm text-muted mt-4 text-center">
             {isEditing ? '修改你的待办事项' : '添加一个新的待办事项'}
