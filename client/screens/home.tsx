@@ -24,6 +24,7 @@ interface Todo {
   id: number;
   title: string;
   is_completed: boolean;
+  due_date?: string;
   created_at: string;
   updated_at: string;
 }
@@ -37,6 +38,7 @@ interface HomeItem {
   title: string;
   subtitle?: string;
   is_completed?: boolean;
+  due_date?: string;
   created_at: string;
 }
 
@@ -107,6 +109,7 @@ export default function HomePage() {
         id: t.id,
         title: t.title,
         is_completed: t.is_completed,
+        due_date: t.due_date,
         created_at: t.created_at,
       }));
 
@@ -401,6 +404,14 @@ export default function HomePage() {
                         <Text className="text-sm text-muted mt-2 ml-10" numberOfLines={2}>
                           {item.subtitle}
                         </Text>
+                      )}
+                      {item.type === 'todo' && item.due_date && (
+                        <View className="flex-row items-center mt-2 ml-10">
+                          <FontAwesome6 name="clock" size={12} color="#3B82F6" />
+                          <Text className="text-xs text-blue-500 ml-1">
+                            {new Date(item.due_date).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                          </Text>
+                        </View>
                       )}
                       <Text className="text-xs text-muted mt-2 ml-10">{formatDate(item.created_at)}</Text>
                     </View>

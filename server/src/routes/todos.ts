@@ -19,12 +19,14 @@ router.get('/', async (req, res) => {
 // 创建待办
 router.post('/', async (req, res) => {
   try {
-    const { title } = req.body;
+    const { title, due_date } = req.body;
     if (!title) {
       return res.status(400).json({ success: false, error: 'Title is required' });
     }
     const client = getSupabaseClient();
-    const { data, error } = await client.from('todos').insert({ title, is_completed: false }).select();
+    const insertData: Record<string, any> = { title, is_completed: false };
+    if (due_date) insertData.due_date = due_date;
+    const { data, error } = await client.from('todos').insert(insertData).select();
     if (error) throw new Error(`插入失败: ${error.message}`);
     res.status(201).json({ success: true, data });
   } catch (error: any) {
@@ -37,11 +39,12 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, is_completed } = req.body;
+    const { title, is_completed, due_date } = req.body;
     const client = getSupabaseClient();
     const updates: Record<string, any> = { updated_at: new Date().toISOString() };
     if (title !== undefined) updates.title = title;
     if (is_completed !== undefined) updates.is_completed = is_completed;
+    if (due_date !== undefined) updates.due_date = due_date;
     
     const { data, error } = await client.from('todos')
       .update(updates)
