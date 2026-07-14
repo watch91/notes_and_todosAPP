@@ -480,17 +480,29 @@ export default function SecretPage() {
     <Screen>
       <View className="flex-1 bg-background">
         {/* Header */}
-        <View className="px-5 pt-4 pb-3 flex-row items-center justify-between">
-          <View>
-            <Text className="text-2xl font-bold text-foreground">小秘密</Text>
-            <Text className="text-sm text-muted mt-1">本地保存，安全私密</Text>
+        <View className="px-5 pt-4 pb-3">
+          <View className="flex-row items-center justify-between">
+            <View>
+              <Text className="text-2xl font-bold text-foreground">小秘密</Text>
+              <Text className="text-sm text-muted mt-1">本地保存，安全私密</Text>
+            </View>
           </View>
-          <View className="flex-row">
-            <TouchableOpacity onPress={handleExportBackup} className="p-2 mr-2">
-              <FontAwesome6 name="file-export" size={20} color="#4F46E5" />
+          <View className="flex-row mt-3">
+            <TouchableOpacity
+              onPress={handleExportBackup}
+              className="flex-row items-center bg-white px-4 py-2 rounded-full mr-3"
+              style={{ shadowColor: '#4F46E5', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 }}
+            >
+              <FontAwesome6 name="file-export" size={14} color="#4F46E5" />
+              <Text className="text-sm text-accent ml-2 font-medium">导出备份</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleImportBackup} className="p-2">
-              <FontAwesome6 name="file-import" size={20} color="#4F46E5" />
+            <TouchableOpacity
+              onPress={handleImportBackup}
+              className="flex-row items-center bg-white px-4 py-2 rounded-full"
+              style={{ shadowColor: '#4F46E5', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 }}
+            >
+              <FontAwesome6 name="file-import" size={14} color="#4F46E5" />
+              <Text className="text-sm text-accent ml-2 font-medium">载入备份</Text>
             </TouchableOpacity>
           </View>
         </View>
