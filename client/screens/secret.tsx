@@ -5,6 +5,8 @@ import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { logger } from '@/utils/logger';
 
 interface SecretNote {
@@ -54,6 +56,8 @@ export default function SecretPage() {
   const [editContent, setEditContent] = useState('');
   const [editImages, setEditImages] = useState<string[]>([]);
   const [isReadOnly, setIsReadOnly] = useState(false);
+  const [importPasswordModalVisible, setImportPasswordModalVisible] = useState(false);
+  const [importPassword, setImportPassword] = useState('');
 
   // 检查密码是否已设置
   useEffect(() => {
@@ -262,6 +266,164 @@ export default function SecretPage() {
     await saveData(notes, updated);
   };
 
+  // 导出备份
+  const handleExportBackup = async () => {
+    try {
+      logger.info('小秘密', '开始导出备份');
+      const backupData = {
+        version: 1,
+        exportTime: new Date().toISOString(),
+        notes,
+        todos,
+      };
+      const jsonContent = JSON.stringify(backupData, null, 2);
+      const fileName = `secret_backup_${Date.now()}.json`;
+
+      if (Platform.OS === 'web') {
+        // Web 端：使用浏览器下载
+        const blob = new Blob([jsonContent], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        logger.info('小秘密', `备份导出成功: ${fileName}`);
+        Alert.alert('成功', '备份文件已下载');
+      } else {
+        // 移动端：写入缓存目录并使用分享功能
+        const cacheDir = (FileSystem as any).cacheDirectory;
+        const fileUri = `${cacheDir}${fileName}`;
+        await (FileSystem as any).writeAsStringAsync(fileUri, jsonContent, {
+          encoding: (FileSystem as any).EncodingType.UTF8,
+        });
+        
+        // 使用分享功能让用户选择保存位置
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'application/json',
+          dialogTitle: '保存备份文件',
+          UTI: 'public.json',
+        });
+        logger.info('小秘密', `备份导出成功: ${fileName}`);
+      }
+    } catch (error) {
+      logger.error('小秘密', error instanceof Error ? error : new Error(String(error)));
+      Alert.alert('错误', '导出备份失败');
+    }
+  };
+
+  // 载入备份
+  const handleImportBackup = () => {
+    Alert.alert(
+      '警告',
+      '载入备份会删除所有现有笔记，是否确认载入？',
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确定',
+          style: 'destructive',
+          onPress: () => showPasswordVerifyForImport(),
+        },
+      ]
+    );
+  };
+
+  // 显示密码验证弹窗
+  const showPasswordVerifyForImport = () => {
+    setImportPassword('');
+    setImportPasswordModalVisible(true);
+  };
+
+  // 确认载入备份（密码验证后）
+  const handleConfirmImport = async () => {
+    const storedPwd = await AsyncStorage.getItem(PASSWORD_KEY);
+    if (storedPwd && decodePassword(storedPwd) === importPassword) {
+      setImportPasswordModalVisible(false);
+      setImportPassword('');
+      // 密码正确，开始载入备份
+      await performImportBackup();
+    } else {
+      Alert.alert('错误', '密码错误');
+    }
+  };
+
+  // 执行载入备份
+  const performImportBackup = async () => {
+    try {
+      logger.info('小秘密', '开始载入备份');
+      
+      if (Platform.OS === 'web') {
+        // Web 端：使用文件选择器
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = async (e) => {
+          const file = (e.target as HTMLInputElement).files?.[0];
+          if (!file) {
+            Alert.alert('错误', '未选择文件');
+            return;
+          }
+          const text = await file.text();
+          await loadBackupData(text);
+        };
+        input.click();
+      } else {
+        // 移动端：查找最新的备份文件
+        const cacheDir = (FileSystem as any).cacheDirectory;
+        if (!cacheDir) {
+          Alert.alert('错误', '无法访问缓存目录');
+          return;
+        }
+
+        const files = await (FileSystem as any).readDirectoryAsync(cacheDir);
+        const backupFiles = files
+          .filter((f: string) => f.startsWith('secret_backup_') && f.endsWith('.json'))
+          .sort()
+          .reverse();
+
+        if (backupFiles.length === 0) {
+          Alert.alert('载入失败', '找不到指定备份文件！');
+          logger.error('小秘密', new Error('找不到备份文件'));
+          return;
+        }
+
+        const latestFile = backupFiles[0];
+        const fileUri = `${cacheDir}${latestFile}`;
+        const content = await (FileSystem as any).readAsStringAsync(fileUri);
+        await loadBackupData(content);
+      }
+    } catch (error) {
+      logger.error('小秘密', error instanceof Error ? error : new Error(String(error)));
+      Alert.alert('错误', '载入备份失败');
+    }
+  };
+
+  // 加载备份数据
+  const loadBackupData = async (jsonContent: string) => {
+    try {
+      const backupData = JSON.parse(jsonContent);
+      if (!backupData.notes || !backupData.todos) {
+        Alert.alert('错误', '备份文件格式不正确');
+        return;
+      }
+
+      // 删除现有数据并载入备份
+      await AsyncStorage.setItem(NOTES_KEY, JSON.stringify(backupData.notes));
+      await AsyncStorage.setItem(TODOS_KEY, JSON.stringify(backupData.todos));
+      setNotes(backupData.notes);
+      setTodos(backupData.todos);
+      
+      logger.info('小秘密', `备份载入成功: ${backupData.notes.length} 条笔记, ${backupData.todos.length} 条待办`);
+      Alert.alert('成功', '备份载入成功');
+      setImportPasswordModalVisible(false);
+    } catch (error) {
+      logger.error('小秘密', error instanceof Error ? error : new Error(String(error)));
+      Alert.alert('错误', '解析备份文件失败');
+    }
+  };
+
   // 密码设置/验证界面
   if (isLocked) {
     return (
@@ -318,9 +480,19 @@ export default function SecretPage() {
     <Screen>
       <View className="flex-1 bg-background">
         {/* Header */}
-        <View className="px-5 pt-4 pb-3">
-          <Text className="text-2xl font-bold text-foreground">小秘密</Text>
-          <Text className="text-sm text-muted mt-1">本地保存，安全私密</Text>
+        <View className="px-5 pt-4 pb-3 flex-row items-center justify-between">
+          <View>
+            <Text className="text-2xl font-bold text-foreground">小秘密</Text>
+            <Text className="text-sm text-muted mt-1">本地保存，安全私密</Text>
+          </View>
+          <View className="flex-row">
+            <TouchableOpacity onPress={handleExportBackup} className="p-2 mr-2">
+              <FontAwesome6 name="file-export" size={20} color="#4F46E5" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleImportBackup} className="p-2">
+              <FontAwesome6 name="file-import" size={20} color="#4F46E5" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Filter Tabs */}
@@ -509,6 +681,42 @@ export default function SecretPage() {
               )}
             </ScrollView>
           </KeyboardAvoidingView>
+        </Modal>
+
+        {/* 载入备份密码验证弹窗 */}
+        <Modal visible={importPasswordModalVisible} transparent animationType="fade">
+          <View className="flex-1 bg-black/50 items-center justify-center">
+            <View className="bg-white rounded-2xl p-6 w-4/5 max-w-80">
+              <Text className="text-lg font-bold text-foreground text-center mb-4">验证密码</Text>
+              <Text className="text-sm text-muted text-center mb-4">请输入小秘密密码以确认载入备份</Text>
+              <TextInput
+                value={importPassword}
+                onChangeText={setImportPassword}
+                placeholder="输入密码"
+                secureTextEntry
+                className="bg-gray-100 rounded-xl px-4 py-3 text-foreground mb-4"
+                placeholderTextColor="#9CA3AF"
+                autoFocus
+              />
+              <View className="flex-row justify-between">
+                <TouchableOpacity
+                  onPress={() => {
+                    setImportPasswordModalVisible(false);
+                    setImportPassword('');
+                  }}
+                  className="flex-1 mr-2 py-3 rounded-xl bg-gray-100"
+                >
+                  <Text className="text-center text-foreground font-medium">取消</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleConfirmImport}
+                  className="flex-1 ml-2 py-3 rounded-xl bg-accent"
+                >
+                  <Text className="text-center text-white font-medium">确认</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
         </Modal>
       </View>
     </Screen>
