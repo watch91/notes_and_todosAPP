@@ -280,7 +280,7 @@ export default function SecretPage() {
   // 导出备份
   const handleExportBackup = async () => {
     try {
-      logger.info('小秘密', '开始导出备份');
+      logger.info('导出备份', `开始导出，当前有 ${notes.length} 条笔记，${todos.length} 条待办`);
       const backupData = {
         version: 1,
         exportTime: new Date().toISOString(),
@@ -289,6 +289,7 @@ export default function SecretPage() {
       };
       const jsonContent = JSON.stringify(backupData, null, 2);
       const fileName = `secret_backup_${Date.now()}.json`;
+      logger.info('导出备份', `生成文件名: ${fileName}, 大小: ${jsonContent.length} 字节`);
 
       if (Platform.OS === 'web') {
         // Web 端：使用浏览器下载
@@ -301,34 +302,40 @@ export default function SecretPage() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        logger.info('小秘密', `备份导出成功: ${fileName}`);
+        logger.info('导出备份', `Web端导出成功: ${fileName}`);
         Alert.alert('成功', '备份文件已下载');
       } else {
         // 移动端：直接保存到 Download/todosandnotessave 目录
         const backupDir = getBackupDirectory();
         if (!backupDir) {
+          logger.error('导出备份', new Error('不支持的平台'));
           Alert.alert('错误', '不支持的平台');
           return;
         }
+        logger.info('导出备份', `目标目录: ${backupDir}`);
 
         // 检查目录是否存在，不存在则创建
         const dirInfo = await (FileSystem as any).getInfoAsync(backupDir);
         if (!dirInfo.exists) {
-          logger.info('小秘密', `创建备份目录: ${backupDir}`);
+          logger.info('导出备份', `目录不存在，正在创建: ${backupDir}`);
           await (FileSystem as any).makeDirectoryAsync(backupDir, { intermediates: true });
+          logger.info('导出备份', '目录创建成功');
+        } else {
+          logger.info('导出备份', '目录已存在');
         }
 
         // 写入文件
         const fileUri = `${backupDir}${fileName}`;
+        logger.info('导出备份', `正在写入文件: ${fileUri}`);
         await (FileSystem as any).writeAsStringAsync(fileUri, jsonContent, {
           encoding: (FileSystem as any).EncodingType.UTF8,
         });
         
-        logger.info('小秘密', `备份导出成功: ${fileUri}`);
+        logger.info('导出备份', `导出成功: ${fileUri}, 包含 ${notes.length} 条笔记, ${todos.length} 条待办`);
         Alert.alert('成功', `备份文件已保存到:\nDownload/todosandnotessave/${fileName}`);
       }
     } catch (error) {
-      logger.error('小秘密', error instanceof Error ? error : new Error(String(error)));
+      logger.error('导出备份', error instanceof Error ? error : new Error(String(error)));
       Alert.alert('错误', `导出备份失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }
   };
@@ -371,20 +378,24 @@ export default function SecretPage() {
   // 执行载入备份
   const performImportBackup = async () => {
     try {
-      logger.info('小秘密', '开始载入备份');
+      logger.info('载入备份', '开始载入备份');
       
       if (Platform.OS === 'web') {
         // Web 端：使用文件选择器
+        logger.info('载入备份', 'Web端：打开文件选择器');
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = '.json';
         input.onchange = async (e) => {
           const file = (e.target as HTMLInputElement).files?.[0];
           if (!file) {
+            logger.error('载入备份', new Error('用户未选择文件'));
             Alert.alert('错误', '未选择文件');
             return;
           }
+          logger.info('载入备份', `用户选择文件: ${file.name}, 大小: ${file.size} 字节`);
           const text = await file.text();
+          logger.info('载入备份', `文件内容读取成功, 长度: ${text.length} 字符`);
           await loadBackupData(text);
         };
         input.click();
@@ -392,25 +403,29 @@ export default function SecretPage() {
         // 移动端：从 Download/todosandnotessave 目录查找最新的备份文件
         const backupDir = getBackupDirectory();
         if (!backupDir) {
+          logger.error('载入备份', new Error('不支持的平台'));
           Alert.alert('错误', '不支持的平台');
           return;
         }
+        logger.info('载入备份', `备份目录: ${backupDir}`);
 
         // 检查目录是否存在
         const dirInfo = await (FileSystem as any).getInfoAsync(backupDir);
         if (!dirInfo.exists) {
           Alert.alert('载入失败', '找不到指定备份文件！');
-          logger.error('小秘密', new Error(`备份目录不存在: ${backupDir}`));
+          logger.error('载入备份', new Error(`备份目录不存在: ${backupDir}`));
           return;
         }
+        logger.info('载入备份', '备份目录存在');
 
         // 读取目录中的文件
         let files: string[] = [];
         try {
           files = await (FileSystem as any).readDirectoryAsync(backupDir);
+          logger.info('载入备份', `目录中共有 ${files.length} 个文件`);
         } catch (readError) {
           Alert.alert('载入失败', '找不到指定备份文件！');
-          logger.error('小秘密', new Error(`读取目录失败: ${readError}`));
+          logger.error('载入备份', new Error(`读取目录失败: ${readError}`));
           return;
         }
 
@@ -420,35 +435,40 @@ export default function SecretPage() {
           .sort()
           .reverse();
 
+        logger.info('载入备份', `找到 ${backupFiles.length} 个备份文件: ${backupFiles.join(', ') || '无'}`);
+
         if (backupFiles.length === 0) {
           Alert.alert('载入失败', '找不到指定备份文件！');
-          logger.error('小秘密', new Error(`目录中没有备份文件: ${backupDir}`));
+          logger.error('载入备份', new Error(`目录中没有备份文件: ${backupDir}`));
           return;
         }
 
         // 读取最新的备份文件
         const latestFile = backupFiles[0];
         const fileUri = `${backupDir}${latestFile}`;
+        logger.info('载入备份', `选择最新备份文件: ${latestFile}`);
         
         // 检查文件是否存在
         const fileInfo = await (FileSystem as any).getInfoAsync(fileUri);
         if (!fileInfo.exists) {
           Alert.alert('载入失败', '找不到指定备份文件！');
-          logger.error('小秘密', new Error(`备份文件不存在: ${fileUri}`));
+          logger.error('载入备份', new Error(`备份文件不存在: ${fileUri}`));
           return;
         }
+        logger.info('载入备份', `文件大小: ${fileInfo.size} 字节`);
 
         const content = await (FileSystem as any).readAsStringAsync(fileUri);
         if (!content || content.trim() === '') {
           Alert.alert('载入失败', '备份文件内容为空！');
-          logger.error('小秘密', new Error(`备份文件内容为空: ${fileUri}`));
+          logger.error('载入备份', new Error(`备份文件内容为空: ${fileUri}`));
           return;
         }
+        logger.info('载入备份', `文件内容读取成功, 长度: ${content.length} 字符`);
 
         await loadBackupData(content);
       }
     } catch (error) {
-      logger.error('小秘密', error instanceof Error ? error : new Error(String(error)));
+      logger.error('载入备份', error instanceof Error ? error : new Error(String(error)));
       Alert.alert('载入失败', '找不到指定备份文件！');
     }
   };
@@ -456,23 +476,27 @@ export default function SecretPage() {
   // 加载备份数据
   const loadBackupData = async (jsonContent: string) => {
     try {
+      logger.info('载入备份', '正在解析备份数据...');
       const backupData = JSON.parse(jsonContent);
       if (!backupData.notes || !backupData.todos) {
+        logger.error('载入备份', new Error('备份文件格式不正确，缺少 notes 或 todos 字段'));
         Alert.alert('错误', '备份文件格式不正确');
         return;
       }
+      logger.info('载入备份', `解析成功: 备份包含 ${backupData.notes.length} 条笔记, ${backupData.todos.length} 条待办`);
 
       // 删除现有数据并载入备份
+      logger.info('载入备份', '正在清除现有数据并写入备份...');
       await AsyncStorage.setItem(NOTES_KEY, JSON.stringify(backupData.notes));
       await AsyncStorage.setItem(TODOS_KEY, JSON.stringify(backupData.todos));
       setNotes(backupData.notes);
       setTodos(backupData.todos);
       
-      logger.info('小秘密', `备份载入成功: ${backupData.notes.length} 条笔记, ${backupData.todos.length} 条待办`);
+      logger.info('载入备份', `载入成功: ${backupData.notes.length} 条笔记, ${backupData.todos.length} 条待办`);
       Alert.alert('成功', '备份载入成功');
       setImportPasswordModalVisible(false);
     } catch (error) {
-      logger.error('小秘密', error instanceof Error ? error : new Error(String(error)));
+      logger.error('载入备份', error instanceof Error ? error : new Error(String(error)));
       Alert.alert('错误', '解析备份文件失败');
     }
   };
