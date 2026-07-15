@@ -6,7 +6,6 @@ import { useSafeRouter } from '@/hooks/useSafeRouter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
 import { logger } from '@/utils/logger';
 
 interface SecretNote {
@@ -266,6 +265,18 @@ export default function SecretPage() {
     await saveData(notes, updated);
   };
 
+  // 获取备份目录路径
+  const getBackupDirectory = () => {
+    if (Platform.OS === 'android') {
+      // Android: 使用外部存储的 Download 目录
+      return 'file:///storage/emulated/0/Download/todosandnotessave/';
+    } else if (Platform.OS === 'ios') {
+      // iOS: 使用文档目录
+      return `${(FileSystem as any).documentDirectory}todosandnotessave/`;
+    }
+    return null;
+  };
+
   // 导出备份
   const handleExportBackup = async () => {
     try {
@@ -293,24 +304,32 @@ export default function SecretPage() {
         logger.info('小秘密', `备份导出成功: ${fileName}`);
         Alert.alert('成功', '备份文件已下载');
       } else {
-        // 移动端：写入缓存目录并使用分享功能
-        const cacheDir = (FileSystem as any).cacheDirectory;
-        const fileUri = `${cacheDir}${fileName}`;
+        // 移动端：直接保存到 Download/todosandnotessave 目录
+        const backupDir = getBackupDirectory();
+        if (!backupDir) {
+          Alert.alert('错误', '不支持的平台');
+          return;
+        }
+
+        // 检查目录是否存在，不存在则创建
+        const dirInfo = await (FileSystem as any).getInfoAsync(backupDir);
+        if (!dirInfo.exists) {
+          logger.info('小秘密', `创建备份目录: ${backupDir}`);
+          await (FileSystem as any).makeDirectoryAsync(backupDir, { intermediates: true });
+        }
+
+        // 写入文件
+        const fileUri = `${backupDir}${fileName}`;
         await (FileSystem as any).writeAsStringAsync(fileUri, jsonContent, {
           encoding: (FileSystem as any).EncodingType.UTF8,
         });
         
-        // 使用分享功能让用户选择保存位置
-        await Sharing.shareAsync(fileUri, {
-          mimeType: 'application/json',
-          dialogTitle: '保存备份文件',
-          UTI: 'public.json',
-        });
-        logger.info('小秘密', `备份导出成功: ${fileName}`);
+        logger.info('小秘密', `备份导出成功: ${fileUri}`);
+        Alert.alert('成功', `备份文件已保存到:\nDownload/todosandnotessave/${fileName}`);
       }
     } catch (error) {
       logger.error('小秘密', error instanceof Error ? error : new Error(String(error)));
-      Alert.alert('错误', '导出备份失败');
+      Alert.alert('错误', `导出备份失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }
   };
 
@@ -370,14 +389,32 @@ export default function SecretPage() {
         };
         input.click();
       } else {
-        // 移动端：查找最新的备份文件
-        const cacheDir = (FileSystem as any).cacheDirectory;
-        if (!cacheDir) {
-          Alert.alert('错误', '无法访问缓存目录');
+        // 移动端：从 Download/todosandnotessave 目录查找最新的备份文件
+        const backupDir = getBackupDirectory();
+        if (!backupDir) {
+          Alert.alert('错误', '不支持的平台');
           return;
         }
 
-        const files = await (FileSystem as any).readDirectoryAsync(cacheDir);
+        // 检查目录是否存在
+        const dirInfo = await (FileSystem as any).getInfoAsync(backupDir);
+        if (!dirInfo.exists) {
+          Alert.alert('载入失败', '找不到指定备份文件！');
+          logger.error('小秘密', new Error(`备份目录不存在: ${backupDir}`));
+          return;
+        }
+
+        // 读取目录中的文件
+        let files: string[] = [];
+        try {
+          files = await (FileSystem as any).readDirectoryAsync(backupDir);
+        } catch (readError) {
+          Alert.alert('载入失败', '找不到指定备份文件！');
+          logger.error('小秘密', new Error(`读取目录失败: ${readError}`));
+          return;
+        }
+
+        // 过滤备份文件
         const backupFiles = files
           .filter((f: string) => f.startsWith('secret_backup_') && f.endsWith('.json'))
           .sort()
@@ -385,18 +422,34 @@ export default function SecretPage() {
 
         if (backupFiles.length === 0) {
           Alert.alert('载入失败', '找不到指定备份文件！');
-          logger.error('小秘密', new Error('找不到备份文件'));
+          logger.error('小秘密', new Error(`目录中没有备份文件: ${backupDir}`));
           return;
         }
 
+        // 读取最新的备份文件
         const latestFile = backupFiles[0];
-        const fileUri = `${cacheDir}${latestFile}`;
+        const fileUri = `${backupDir}${latestFile}`;
+        
+        // 检查文件是否存在
+        const fileInfo = await (FileSystem as any).getInfoAsync(fileUri);
+        if (!fileInfo.exists) {
+          Alert.alert('载入失败', '找不到指定备份文件！');
+          logger.error('小秘密', new Error(`备份文件不存在: ${fileUri}`));
+          return;
+        }
+
         const content = await (FileSystem as any).readAsStringAsync(fileUri);
+        if (!content || content.trim() === '') {
+          Alert.alert('载入失败', '备份文件内容为空！');
+          logger.error('小秘密', new Error(`备份文件内容为空: ${fileUri}`));
+          return;
+        }
+
         await loadBackupData(content);
       }
     } catch (error) {
       logger.error('小秘密', error instanceof Error ? error : new Error(String(error)));
-      Alert.alert('错误', '载入备份失败');
+      Alert.alert('载入失败', '找不到指定备份文件！');
     }
   };
 
