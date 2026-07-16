@@ -191,11 +191,172 @@ const MusicPlayer = () => {
   );
 };
 
+// 钻石音乐播放器组件 - 2026年7月16日彩蛋
+const DiamondPlayer = () => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [position, setPosition] = useState(0);
+  const soundRef = useRef<Audio.Sound | null>(null);
+
+  // 音乐文件 URL - 待用户提供
+  const MUSIC_URI = '';
+
+  useEffect(() => {
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
+      }
+    };
+  }, []);
+
+  // 自动播放音乐
+  useEffect(() => {
+    const autoPlay = async () => {
+      if (!MUSIC_URI) return;
+      
+      try {
+        setIsLoading(true);
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: MUSIC_URI },
+          { shouldPlay: true, isLooping: false },
+          (status) => {
+            if (status.isLoaded) {
+              setDuration(status.durationMillis || 0);
+              setIsLoading(false);
+            }
+          }
+        );
+        soundRef.current = sound;
+        setIsPlaying(true);
+      } catch (error) {
+        console.error('自动播放错误:', error);
+        setIsLoading(false);
+      }
+    };
+    
+    autoPlay();
+  }, []);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isPlaying) {
+      interval = setInterval(async () => {
+        if (soundRef.current) {
+          const status = await soundRef.current.getStatusAsync();
+          if (status.isLoaded) {
+            setPosition(status.positionMillis || 0);
+            if (status.didJustFinish) {
+              setIsPlaying(false);
+              await soundRef.current.setPositionAsync(0);
+              setPosition(0);
+            }
+          }
+        }
+      }, 500);
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying]);
+
+  const togglePlay = async () => {
+    if (!MUSIC_URI) {
+      // 音乐文件未配置
+      return;
+    }
+
+    try {
+      if (!soundRef.current) {
+        setIsLoading(true);
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: MUSIC_URI },
+          { shouldPlay: false, isLooping: false },
+          (status) => {
+            if (status.isLoaded) {
+              setDuration(status.durationMillis || 0);
+            }
+          }
+        );
+        soundRef.current = sound;
+        setIsLoading(false);
+      }
+
+      if (isPlaying) {
+        await soundRef.current.pauseAsync();
+        setIsPlaying(false);
+      } else {
+        const status = await soundRef.current.getStatusAsync();
+        if (status.isLoaded && status.positionMillis >= (status.durationMillis || 0)) {
+          await soundRef.current.setPositionAsync(0);
+          setPosition(0);
+        }
+        await soundRef.current.playAsync();
+        setIsPlaying(true);
+      }
+    } catch (error) {
+      console.error('播放错误:', error);
+      setIsLoading(false);
+    }
+  };
+
+  const formatTime = (ms: number) => {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const progress = duration > 0 ? position / duration : 0;
+
+  if (!MUSIC_URI) {
+    return null; // 音乐文件未配置时不显示播放器
+  }
+
+  return (
+    <View style={styles.playerContainer}>
+      {/* 卡片上方的文字 */}
+      <Text style={styles.diamondQuote}>非洲之星是世界上最大的钻石，璀璨夺目，象征着永恒的爱情</Text>
+      
+      <LinearGradient
+        colors={['rgba(139, 69, 19, 0.8)', 'rgba(218, 165, 32, 0.6)']}
+        style={styles.diamondPlayerCard}
+      >
+        {/* 钻石图标 */}
+        <View style={styles.diamondIcon}>
+          <FontAwesome6 name="gem" size={40} color="#fff" />
+        </View>
+
+        {/* 播放控制 */}
+        <View style={styles.diamondControls}>
+          <TouchableOpacity onPress={togglePlay} disabled={isLoading} style={styles.diamondPlayButton}>
+            <FontAwesome6 
+              name={isLoading ? 'spinner' : isPlaying ? 'pause' : 'play'} 
+              size={28} 
+              color="#fff" 
+            />
+          </TouchableOpacity>
+
+          {/* 进度条 */}
+          <View style={styles.diamondProgressContainer}>
+            <View style={styles.diamondProgressBar}>
+              <View style={[styles.diamondProgressFill, { width: `${progress * 100}%` }]} />
+            </View>
+            <View style={styles.diamondTimeContainer}>
+              <Text style={styles.diamondTimeText}>{formatTime(position)}</Text>
+              <Text style={styles.diamondTimeText}>{formatTime(duration)}</Text>
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
+    </View>
+  );
+};
+
 export default function CreativeHallScreen() {
   const router = useSafeRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const [showPlayer, setShowPlayer] = useState(false);
+  const [showDiamondPlayer, setShowDiamondPlayer] = useState(false);
 
   // 检查是否为2026年7月10日（彩蛋时间）
   useEffect(() => {
@@ -206,6 +367,11 @@ export default function CreativeHallScreen() {
     
     if (year === 2026 && month === 7 && day === 10) {
       setShowPlayer(true);
+    }
+    
+    // 检查是否为2026年7月16日（钻石彩蛋时间）
+    if (year === 2026 && month === 7 && day === 16) {
+      setShowDiamondPlayer(true);
     }
   }, []);
 
@@ -287,6 +453,9 @@ export default function CreativeHallScreen() {
 
           {/* 音乐播放器 - 仅在2026年7月10日显示 */}
           {showPlayer && <MusicPlayer />}
+
+          {/* 钻石音乐播放器 - 仅在2026年7月16日显示 */}
+          {showDiamondPlayer && <DiamondPlayer />}
 
           {/* 底部装饰 */}
           <View style={styles.footer}>
@@ -496,5 +665,79 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 11,
     color: 'rgba(255, 255, 255, 0.7)',
+  },
+  // 钻石音乐播放器样式
+  diamondQuote: {
+    fontSize: 15,
+    color: 'rgba(255, 215, 0, 0.9)',
+    textAlign: 'center',
+    marginBottom: 16,
+    fontStyle: 'italic',
+    paddingHorizontal: 20,
+    fontWeight: '500',
+    textShadowColor: 'rgba(218, 165, 32, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
+  },
+  diamondPlayerCard: {
+    alignItems: 'center',
+    padding: 20,
+    borderRadius: 20,
+    width: '100%',
+  },
+  diamondIcon: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  diamondControls: {
+    width: '100%',
+    gap: 12,
+    alignItems: 'center',
+  },
+  diamondPlayButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  diamondProgressContainer: {
+    width: '100%',
+    gap: 6,
+  },
+  diamondProgressBar: {
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  diamondProgressFill: {
+    height: '100%',
+    backgroundColor: '#FFD700',
+    borderRadius: 2,
+  },
+  diamondTimeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  diamondTimeText: {
+    fontSize: 12,
+    color: 'rgba(255, 215, 0, 0.8)',
   },
 });
