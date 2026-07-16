@@ -199,8 +199,8 @@ const DiamondPlayer = () => {
   const [position, setPosition] = useState(0);
   const soundRef = useRef<Audio.Sound | null>(null);
 
-  // 音乐文件 URL - 待用户提供
-  const MUSIC_URI = '';
+  // 音乐文件 URL
+  const MUSIC_URI = 'https://coze-coding-project.tos.coze.site/coze_storage_7637904258242707508/%E7%88%B1%E9%94%99%EF%BC%88%E5%88%9B%E6%84%8F%E5%A4%A7%E5%8E%85%E5%BD%A9%E8%9B%8B%E9%9F%B3%E4%B9%90%EF%BC%89.mp3?sign=1847248022-cae9c26eb3-0-a9676ac216b12319000eeccad448b2cf83b1db01383e9c6e80d0e39a23075c3c';
 
   useEffect(() => {
     return () => {
@@ -323,6 +323,12 @@ const DiamondPlayer = () => {
         {/* 钻石图标 */}
         <View style={styles.diamondIcon}>
           <FontAwesome6 name="gem" size={40} color="#fff" />
+        </View>
+
+        {/* 歌曲信息 */}
+        <View style={styles.diamondSongInfo}>
+          <Text style={styles.diamondSongTitle}>爱错</Text>
+          <Text style={styles.diamondSongArtist}>王力宏</Text>
         </View>
 
         {/* 播放控制 */}
@@ -692,12 +698,29 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
     shadowColor: '#FFD700',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,
     shadowRadius: 10,
     elevation: 6,
+  },
+  diamondSongInfo: {
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 4,
+  },
+  diamondSongTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    textShadowColor: 'rgba(218, 165, 32, 0.6)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 6,
+  },
+  diamondSongArtist: {
+    fontSize: 13,
+    color: 'rgba(255, 215, 0, 0.8)',
   },
   diamondControls: {
     width: '100%',
