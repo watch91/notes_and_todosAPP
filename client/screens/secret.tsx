@@ -5,7 +5,6 @@ import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system/legacy';
 import { logger } from '@/utils/logger';
 
 interface SecretNote {
@@ -55,8 +54,6 @@ export default function SecretPage() {
   const [editContent, setEditContent] = useState('');
   const [editImages, setEditImages] = useState<string[]>([]);
   const [isReadOnly, setIsReadOnly] = useState(false);
-  const [importPasswordModalVisible, setImportPasswordModalVisible] = useState(false);
-  const [importPassword, setImportPassword] = useState('');
 
   // 检查密码是否已设置
   useEffect(() => {
@@ -265,242 +262,6 @@ export default function SecretPage() {
     await saveData(notes, updated);
   };
 
-  // 获取备份目录路径
-  const getBackupDirectory = () => {
-    if (Platform.OS === 'android') {
-      // Android: 使用外部存储的 Download 目录
-      return 'file:///storage/emulated/0/Download/todosandnotessave/';
-    } else if (Platform.OS === 'ios') {
-      // iOS: 使用文档目录
-      return `${(FileSystem as any).documentDirectory}todosandnotessave/`;
-    }
-    return null;
-  };
-
-  // 导出备份
-  const handleExportBackup = async () => {
-    try {
-      logger.info('导出备份', `开始导出，当前有 ${notes.length} 条笔记，${todos.length} 条待办`);
-      const backupData = {
-        version: 1,
-        exportTime: new Date().toISOString(),
-        notes,
-        todos,
-      };
-      const jsonContent = JSON.stringify(backupData, null, 2);
-      const fileName = `secret_backup_${Date.now()}.json`;
-      logger.info('导出备份', `生成文件名: ${fileName}, 大小: ${jsonContent.length} 字节`);
-
-      if (Platform.OS === 'web') {
-        // Web 端：使用浏览器下载
-        const blob = new Blob([jsonContent], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        logger.info('导出备份', `Web端导出成功: ${fileName}`);
-        Alert.alert('成功', '备份文件已下载');
-      } else {
-        // 移动端：直接保存到 Download/todosandnotessave 目录
-        const backupDir = getBackupDirectory();
-        if (!backupDir) {
-          logger.error('导出备份', new Error('不支持的平台'));
-          Alert.alert('错误', '不支持的平台');
-          return;
-        }
-        logger.info('导出备份', `目标目录: ${backupDir}`);
-
-        // 检查目录是否存在，不存在则创建
-        const dirInfo = await (FileSystem as any).getInfoAsync(backupDir);
-        if (!dirInfo.exists) {
-          logger.info('导出备份', `目录不存在，正在创建: ${backupDir}`);
-          await (FileSystem as any).makeDirectoryAsync(backupDir, { intermediates: true });
-          logger.info('导出备份', '目录创建成功');
-        } else {
-          logger.info('导出备份', '目录已存在');
-        }
-
-        // 写入文件
-        const fileUri = `${backupDir}${fileName}`;
-        logger.info('导出备份', `正在写入文件: ${fileUri}`);
-        await (FileSystem as any).writeAsStringAsync(fileUri, jsonContent, {
-          encoding: (FileSystem as any).EncodingType.UTF8,
-        });
-        
-        logger.info('导出备份', `导出成功: ${fileUri}, 包含 ${notes.length} 条笔记, ${todos.length} 条待办`);
-        Alert.alert('成功', `备份文件已保存到:\nDownload/todosandnotessave/${fileName}`);
-      }
-    } catch (error) {
-      logger.error('导出备份', error instanceof Error ? error : new Error(String(error)));
-      Alert.alert('错误', `导出备份失败: ${error instanceof Error ? error.message : '未知错误'}`);
-    }
-  };
-
-  // 载入备份
-  const handleImportBackup = () => {
-    Alert.alert(
-      '警告',
-      '载入备份会删除所有现有笔记，是否确认载入？',
-      [
-        { text: '取消', style: 'cancel' },
-        {
-          text: '确定',
-          style: 'destructive',
-          onPress: () => showPasswordVerifyForImport(),
-        },
-      ]
-    );
-  };
-
-  // 显示密码验证弹窗
-  const showPasswordVerifyForImport = () => {
-    setImportPassword('');
-    setImportPasswordModalVisible(true);
-  };
-
-  // 确认载入备份（密码验证后）
-  const handleConfirmImport = async () => {
-    const storedPwd = await AsyncStorage.getItem(PASSWORD_KEY);
-    if (storedPwd && decodePassword(storedPwd) === importPassword) {
-      setImportPasswordModalVisible(false);
-      setImportPassword('');
-      // 密码正确，开始载入备份
-      await performImportBackup();
-    } else {
-      Alert.alert('错误', '密码错误');
-    }
-  };
-
-  // 执行载入备份
-  const performImportBackup = async () => {
-    try {
-      logger.info('载入备份', '开始载入备份');
-      
-      if (Platform.OS === 'web') {
-        // Web 端：使用文件选择器
-        logger.info('载入备份', 'Web端：打开文件选择器');
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-        input.onchange = async (e) => {
-          const file = (e.target as HTMLInputElement).files?.[0];
-          if (!file) {
-            logger.error('载入备份', new Error('用户未选择文件'));
-            Alert.alert('错误', '未选择文件');
-            return;
-          }
-          logger.info('载入备份', `用户选择文件: ${file.name}, 大小: ${file.size} 字节`);
-          const text = await file.text();
-          logger.info('载入备份', `文件内容读取成功, 长度: ${text.length} 字符`);
-          await loadBackupData(text);
-        };
-        input.click();
-      } else {
-        // 移动端：从 Download/todosandnotessave 目录查找最新的备份文件
-        const backupDir = getBackupDirectory();
-        if (!backupDir) {
-          logger.error('载入备份', new Error('不支持的平台'));
-          Alert.alert('错误', '不支持的平台');
-          return;
-        }
-        logger.info('载入备份', `备份目录: ${backupDir}`);
-
-        // 检查目录是否存在
-        const dirInfo = await (FileSystem as any).getInfoAsync(backupDir);
-        if (!dirInfo.exists) {
-          Alert.alert('载入失败', '找不到指定备份文件！');
-          logger.error('载入备份', new Error(`备份目录不存在: ${backupDir}`));
-          return;
-        }
-        logger.info('载入备份', '备份目录存在');
-
-        // 读取目录中的文件
-        let files: string[] = [];
-        try {
-          files = await (FileSystem as any).readDirectoryAsync(backupDir);
-          logger.info('载入备份', `目录中共有 ${files.length} 个文件`);
-        } catch (readError) {
-          Alert.alert('载入失败', '找不到指定备份文件！');
-          logger.error('载入备份', new Error(`读取目录失败: ${readError}`));
-          return;
-        }
-
-        // 过滤备份文件
-        const backupFiles = files
-          .filter((f: string) => f.startsWith('secret_backup_') && f.endsWith('.json'))
-          .sort()
-          .reverse();
-
-        logger.info('载入备份', `找到 ${backupFiles.length} 个备份文件: ${backupFiles.join(', ') || '无'}`);
-
-        if (backupFiles.length === 0) {
-          Alert.alert('载入失败', '找不到指定备份文件！');
-          logger.error('载入备份', new Error(`目录中没有备份文件: ${backupDir}`));
-          return;
-        }
-
-        // 读取最新的备份文件
-        const latestFile = backupFiles[0];
-        const fileUri = `${backupDir}${latestFile}`;
-        logger.info('载入备份', `选择最新备份文件: ${latestFile}`);
-        
-        // 检查文件是否存在
-        const fileInfo = await (FileSystem as any).getInfoAsync(fileUri);
-        if (!fileInfo.exists) {
-          Alert.alert('载入失败', '找不到指定备份文件！');
-          logger.error('载入备份', new Error(`备份文件不存在: ${fileUri}`));
-          return;
-        }
-        logger.info('载入备份', `文件大小: ${fileInfo.size} 字节`);
-
-        const content = await (FileSystem as any).readAsStringAsync(fileUri);
-        if (!content || content.trim() === '') {
-          Alert.alert('载入失败', '备份文件内容为空！');
-          logger.error('载入备份', new Error(`备份文件内容为空: ${fileUri}`));
-          return;
-        }
-        logger.info('载入备份', `文件内容读取成功, 长度: ${content.length} 字符`);
-
-        await loadBackupData(content);
-      }
-    } catch (error) {
-      logger.error('载入备份', error instanceof Error ? error : new Error(String(error)));
-      Alert.alert('载入失败', '找不到指定备份文件！');
-    }
-  };
-
-  // 加载备份数据
-  const loadBackupData = async (jsonContent: string) => {
-    try {
-      logger.info('载入备份', '正在解析备份数据...');
-      const backupData = JSON.parse(jsonContent);
-      if (!backupData.notes || !backupData.todos) {
-        logger.error('载入备份', new Error('备份文件格式不正确，缺少 notes 或 todos 字段'));
-        Alert.alert('错误', '备份文件格式不正确');
-        return;
-      }
-      logger.info('载入备份', `解析成功: 备份包含 ${backupData.notes.length} 条笔记, ${backupData.todos.length} 条待办`);
-
-      // 删除现有数据并载入备份
-      logger.info('载入备份', '正在清除现有数据并写入备份...');
-      await AsyncStorage.setItem(NOTES_KEY, JSON.stringify(backupData.notes));
-      await AsyncStorage.setItem(TODOS_KEY, JSON.stringify(backupData.todos));
-      setNotes(backupData.notes);
-      setTodos(backupData.todos);
-      
-      logger.info('载入备份', `载入成功: ${backupData.notes.length} 条笔记, ${backupData.todos.length} 条待办`);
-      Alert.alert('成功', '备份载入成功');
-      setImportPasswordModalVisible(false);
-    } catch (error) {
-      logger.error('载入备份', error instanceof Error ? error : new Error(String(error)));
-      Alert.alert('错误', '解析备份文件失败');
-    }
-  };
-
   // 密码设置/验证界面
   if (isLocked) {
     return (
@@ -558,30 +319,8 @@ export default function SecretPage() {
       <View className="flex-1 bg-background">
         {/* Header */}
         <View className="px-5 pt-4 pb-3">
-          <View className="flex-row items-center justify-between">
-            <View>
-              <Text className="text-2xl font-bold text-foreground">小秘密</Text>
-              <Text className="text-sm text-muted mt-1">本地保存，安全私密</Text>
-            </View>
-          </View>
-          <View className="flex-row mt-3">
-            <TouchableOpacity
-              onPress={handleExportBackup}
-              className="flex-row items-center bg-white px-4 py-2 rounded-full mr-3"
-              style={{ shadowColor: '#4F46E5', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 }}
-            >
-              <FontAwesome6 name="file-export" size={14} color="#4F46E5" />
-              <Text className="text-sm text-accent ml-2 font-medium">导出备份</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleImportBackup}
-              className="flex-row items-center bg-white px-4 py-2 rounded-full"
-              style={{ shadowColor: '#4F46E5', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 }}
-            >
-              <FontAwesome6 name="file-import" size={14} color="#4F46E5" />
-              <Text className="text-sm text-accent ml-2 font-medium">载入备份</Text>
-            </TouchableOpacity>
-          </View>
+          <Text className="text-2xl font-bold text-foreground">小秘密</Text>
+          <Text className="text-sm text-muted mt-1">本地保存，安全私密</Text>
         </View>
 
         {/* Filter Tabs */}
@@ -770,42 +509,6 @@ export default function SecretPage() {
               )}
             </ScrollView>
           </KeyboardAvoidingView>
-        </Modal>
-
-        {/* 载入备份密码验证弹窗 */}
-        <Modal visible={importPasswordModalVisible} transparent animationType="fade">
-          <View className="flex-1 bg-black/50 items-center justify-center">
-            <View className="bg-white rounded-2xl p-6 w-4/5 max-w-80">
-              <Text className="text-lg font-bold text-foreground text-center mb-4">验证密码</Text>
-              <Text className="text-sm text-muted text-center mb-4">请输入小秘密密码以确认载入备份</Text>
-              <TextInput
-                value={importPassword}
-                onChangeText={setImportPassword}
-                placeholder="输入密码"
-                secureTextEntry
-                className="bg-gray-100 rounded-xl px-4 py-3 text-foreground mb-4"
-                placeholderTextColor="#9CA3AF"
-                autoFocus
-              />
-              <View className="flex-row justify-between">
-                <TouchableOpacity
-                  onPress={() => {
-                    setImportPasswordModalVisible(false);
-                    setImportPassword('');
-                  }}
-                  className="flex-1 mr-2 py-3 rounded-xl bg-gray-100"
-                >
-                  <Text className="text-center text-foreground font-medium">取消</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleConfirmImport}
-                  className="flex-1 ml-2 py-3 rounded-xl bg-accent"
-                >
-                  <Text className="text-center text-white font-medium">确认</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
         </Modal>
       </View>
     </Screen>
