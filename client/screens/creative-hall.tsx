@@ -375,8 +375,8 @@ export default function CreativeHallScreen() {
       setShowPlayer(true);
     }
     
-    // 检查是否为2026年7月16日（钻石彩蛋时间）
-    if (year === 2026 && month === 7 && day === 16) {
+    // 检查是否为2026年7月15日（钻石彩蛋时间）
+    if (year === 2026 && month === 7 && day === 15) {
       setShowDiamondPlayer(true);
     }
   }, []);
