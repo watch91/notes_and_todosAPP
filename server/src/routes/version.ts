@@ -12,7 +12,12 @@ router.get('/', async (req, res) => {
     
     const config: Record<string, string> = {};
     data.forEach((item: { key: string; value: string }) => { config[item.key] = item.value; });
-    res.json({ new_version: config.new_version || '1.0.0', download_url: config.download_url || '' });
+    res.json({ 
+      new_version: config.new_version || '1.0.0', 
+      download_url: config.download_url || '',
+      Version_beta_testing: config.Version_beta_testing || '',
+      beta_version_download_URL: config.beta_version_download_URL || ''
+    });
   } catch (error: any) {
     console.error('Error:', error);
     res.status(500).json({ error: error.message });
@@ -22,7 +27,7 @@ router.get('/', async (req, res) => {
 // 更新版本信息
 router.post('/', async (req, res) => {
   try {
-    const { new_version, download_url } = req.body;
+    const { new_version, download_url, Version_beta_testing, beta_version_download_URL } = req.body;
     const client = getSupabaseClient();
     
     if (new_version !== undefined) {
@@ -30,6 +35,12 @@ router.post('/', async (req, res) => {
     }
     if (download_url !== undefined) {
       await client.from('app_config').upsert({ key: 'download_url', value: download_url });
+    }
+    if (Version_beta_testing !== undefined) {
+      await client.from('app_config').upsert({ key: 'Version_beta_testing', value: Version_beta_testing });
+    }
+    if (beta_version_download_URL !== undefined) {
+      await client.from('app_config').upsert({ key: 'beta_version_download_URL', value: beta_version_download_URL });
     }
     
     res.json({ success: true });

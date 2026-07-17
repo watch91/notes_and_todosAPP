@@ -9,7 +9,7 @@ import { logger } from '@/utils/logger';
 
 const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
-type ConfigKey = 'download_url' | 'new_version';
+type ConfigKey = 'download_url' | 'new_version' | 'Version_beta_testing' | 'beta_version_download_URL';
 
 export default function DevModePage() {
   const router = useSafeRouter();
@@ -152,6 +152,45 @@ export default function DevModePage() {
           </TouchableOpacity>
         </View>
 
+        {/* Beta 版本配置 */}
+        <View className="mx-5 mt-4 bg-white rounded-2xl overflow-hidden shadow-sm"
+          style={{
+            shadowColor: '#4F46E5',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 8,
+            elevation: 2,
+          }}
+        >
+          <TouchableOpacity
+            onPress={() => handleOpenModal('Version_beta_testing')}
+            className="flex-row items-center px-5 py-4 border-b border-gray-100"
+          >
+            <View className="w-10 h-10 rounded-xl bg-orange-50 items-center justify-center">
+              <FontAwesome6 name="flask" size={16} color="#F97316" />
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="font-medium text-foreground">Beta版本</Text>
+              <Text className="text-xs text-muted mt-0.5">修改Beta测试版本号</Text>
+            </View>
+            <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => handleOpenModal('beta_version_download_URL')}
+            className="flex-row items-center px-5 py-4"
+          >
+            <View className="w-10 h-10 rounded-xl bg-pink-50 items-center justify-center">
+              <FontAwesome6 name="download" size={16} color="#EC4899" />
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="font-medium text-foreground">Beta下载链接</Text>
+              <Text className="text-xs text-muted mt-0.5">修改Beta版本APK下载链接</Text>
+            </View>
+            <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
+          </TouchableOpacity>
+        </View>
+
         {/* 日志查看 */}
         <View className="mx-5 mt-4 bg-white rounded-2xl overflow-hidden shadow-sm"
           style={{
@@ -212,7 +251,10 @@ export default function DevModePage() {
               <View className="bg-white rounded-t-3xl p-5">
                 <View className="flex-row items-center mb-4">
                   <Text className="text-lg font-bold flex-1">
-                    {modalType === 'download_url' ? '修改链接' : '修改版本'}
+                    {modalType === 'download_url' ? '修改链接' : 
+                     modalType === 'new_version' ? '修改版本' :
+                     modalType === 'Version_beta_testing' ? '修改Beta版本' :
+                     '修改Beta下载链接'}
                   </Text>
                   <TouchableOpacity onPress={() => setShowModal(false)}>
                     <FontAwesome6 name="xmark" size={20} color="#9CA3AF" />
@@ -221,11 +263,16 @@ export default function DevModePage() {
 
                 <TextInput
                   className="bg-gray-100 rounded-xl px-4 py-3 text-sm"
-                  placeholder={modalType === 'download_url' ? '输入下载链接' : '输入版本号'}
+                  placeholder={
+                    modalType === 'download_url' ? '输入下载链接' : 
+                    modalType === 'new_version' ? '输入版本号' :
+                    modalType === 'Version_beta_testing' ? '输入Beta版本号' :
+                    '输入Beta下载链接'
+                  }
                   value={inputValue}
                   onChangeText={setInputValue}
-                  multiline={modalType === 'download_url'}
-                  numberOfLines={modalType === 'download_url' ? 4 : 1}
+                  multiline={modalType === 'download_url' || modalType === 'beta_version_download_URL'}
+                  numberOfLines={modalType === 'download_url' || modalType === 'beta_version_download_URL' ? 4 : 1}
                 />
 
                 <TouchableOpacity
