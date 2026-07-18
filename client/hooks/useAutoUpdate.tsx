@@ -17,11 +17,14 @@ const compareVersions = (a: string, b: string): boolean => {
 };
 
 // 检查正式版更新
-const checkStableUpdate = (data: { new_version?: string; download_url?: string }) => {
+const checkStableUpdate = (data: { new_version?: string; download_url?: string; version_suffix?: string }) => {
   if (data.new_version && compareVersions(APP_VERSION, data.new_version)) {
+    const versionDisplay = data.version_suffix 
+      ? `v${data.new_version} ${data.version_suffix}`
+      : `v${data.new_version}`;
     Alert.alert(
       '发现新版本',
-      `当前版本 ${APP_VERSION}，最新版本 ${data.new_version}，是否立即更新？`,
+      `当前版本 ${APP_VERSION}，最新版本 ${versionDisplay}，是否立即更新？`,
       [
         { text: '稍后', style: 'cancel' },
         { text: '立即更新', onPress: () => {

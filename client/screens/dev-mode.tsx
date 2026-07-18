@@ -9,7 +9,7 @@ import { logger } from '@/utils/logger';
 
 const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
-type ConfigKey = 'download_url' | 'new_version' | 'Version_beta_testing' | 'beta_version_download_URL';
+type ConfigKey = 'download_url' | 'new_version' | 'Version_beta_testing' | 'beta_version_download_URL' | 'version_suffix';
 
 export default function DevModePage() {
   const router = useSafeRouter();
@@ -139,7 +139,7 @@ export default function DevModePage() {
 
           <TouchableOpacity
             onPress={() => handleOpenModal('new_version')}
-            className="flex-row items-center px-5 py-4"
+            className="flex-row items-center px-5 py-4 border-b border-gray-100"
           >
             <View className="w-10 h-10 rounded-xl bg-green-50 items-center justify-center">
               <FontAwesome6 name="tag" size={16} color="#10B981" />
@@ -147,6 +147,20 @@ export default function DevModePage() {
             <View className="flex-1 ml-3">
               <Text className="font-medium text-foreground">版本</Text>
               <Text className="text-xs text-muted mt-0.5">修改最新版本号</Text>
+            </View>
+            <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => handleOpenModal('version_suffix')}
+            className="flex-row items-center px-5 py-4"
+          >
+            <View className="w-10 h-10 rounded-xl bg-teal-50 items-center justify-center">
+              <FontAwesome6 name="plus" size={16} color="#14B8A6" />
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="font-medium text-foreground">版本后缀</Text>
+              <Text className="text-xs text-muted mt-0.5">修改版本后缀（如 -beta）</Text>
             </View>
             <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
           </TouchableOpacity>
@@ -254,7 +268,8 @@ export default function DevModePage() {
                     {modalType === 'download_url' ? '修改链接' : 
                      modalType === 'new_version' ? '修改版本' :
                      modalType === 'Version_beta_testing' ? '修改Beta版本' :
-                     '修改Beta下载链接'}
+                     modalType === 'beta_version_download_URL' ? '修改Beta下载链接' :
+                     '修改版本后缀'}
                   </Text>
                   <TouchableOpacity onPress={() => setShowModal(false)}>
                     <FontAwesome6 name="xmark" size={20} color="#9CA3AF" />
@@ -267,7 +282,8 @@ export default function DevModePage() {
                     modalType === 'download_url' ? '输入下载链接' : 
                     modalType === 'new_version' ? '输入版本号' :
                     modalType === 'Version_beta_testing' ? '输入Beta版本号' :
-                    '输入Beta下载链接'
+                    modalType === 'beta_version_download_URL' ? '输入Beta下载链接' :
+                    '输入版本后缀（如 -beta）'
                   }
                   value={inputValue}
                   onChangeText={setInputValue}
