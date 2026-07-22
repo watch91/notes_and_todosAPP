@@ -451,7 +451,7 @@ export default function NoteEditPage() {
           </View>
 
           {/* Labels */}
-          {!isReadOnly && (
+          {(labels.filter(l => l !== null).length > 0 || !isReadOnly) && (
             <View className="bg-white rounded-2xl p-4 mb-4"
               style={{
                 shadowColor: '#4F46E5',
@@ -463,13 +463,15 @@ export default function NoteEditPage() {
             >
               <View className="flex-row items-center justify-between">
                 <Text className="text-sm font-medium text-gray-600">标签</Text>
-                <TouchableOpacity
-                  onPress={() => setLabelModalVisible(true)}
-                  className="flex-row items-center bg-indigo-100 px-3 py-1.5 rounded-full"
-                >
-                  <FontAwesome6 name="tags" size={12} color="#4F46E5" />
-                  <Text className="text-xs text-indigo-600 ml-1.5">选择标签</Text>
-                </TouchableOpacity>
+                {!isReadOnly && (
+                  <TouchableOpacity
+                    onPress={() => setLabelModalVisible(true)}
+                    className="flex-row items-center bg-indigo-100 px-3 py-1.5 rounded-full"
+                  >
+                    <FontAwesome6 name="tags" size={12} color="#4F46E5" />
+                    <Text className="text-xs text-indigo-600 ml-1.5">选择标签</Text>
+                  </TouchableOpacity>
+                )}
               </View>
               {labels.filter(l => l !== null).length > 0 && (
                 <View className="flex-row flex-wrap mt-3">
