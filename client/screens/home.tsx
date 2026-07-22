@@ -12,12 +12,39 @@ const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9
 // 屏蔽关键词
 const BLOCK_KEYWORDS = ['更新公告', 'test'];
 
+// 标签对应关系
+const LABELS: Record<number, string> = {
+  1: '生活', 2: '工作', 3: '学习', 4: '娱乐', 5: '旅游',
+  6: '美食', 7: '运动', 8: '健康', 9: '家庭', 10: '社交',
+  11: '科技', 12: '艺术', 13: '音乐', 14: '电影', 15: '阅读',
+  16: '游戏', 17: '购物', 18: '宠物', 19: '汽车', 20: '房产',
+  21: '投资', 22: '理财', 23: '教育', 24: '育儿', 25: '情感',
+  26: '心理', 27: '哲学', 28: '宗教', 29: '历史', 30: '文化',
+  31: '自然', 32: '社会', 33: '政治', 34: '经济', 35: '法律',
+  36: '军事', 37: '其他',
+};
+
+// 标签颜色
+const LABEL_COLORS: Record<number, string> = {
+  1: '#FF6B6B', 2: '#4ECDC4', 3: '#45B7D1', 4: '#96CEB4', 5: '#FFEAA7',
+  6: '#DDA0DD', 7: '#98D8C8', 8: '#F7DC6F', 9: '#BB8FCE', 10: '#85C1E2',
+  11: '#F8B739', 12: '#52B3D9', 13: '#E08283', 14: '#86C232', 15: '#6A89CC',
+  16: '#B33771', 17: '#22A6B3', 18: '#F97F51', 19: '#1B9CFC', 20: '#58B19F',
+  21: '#3D3D3D', 22: '#6AB04C', 23: '#EAB543', 24: '#FA983A', 25: '#EB2F06',
+  26: '#182C61', 27: '#C4E538', 28: '#A3CB38', 29: '#FDA7DF', 30: '#D980FA',
+  31: '#0652DD', 32: '#12CBC4', 33: '#ED4C67', 34: '#B53471', 35: '#EE5A24',
+  36: '#009432', 37: '#6F1E51',
+};
+
 interface Note {
   id: number;
   title: string;
   content: string;
   created_at: string;
   updated_at: string;
+  label_1?: number | null;
+  label_2?: number | null;
+  label_3?: number | null;
 }
 
 interface Todo {
@@ -40,6 +67,7 @@ interface HomeItem {
   is_completed?: boolean;
   due_date?: string;
   created_at: string;
+  labels?: (number | null)[];
 }
 
 export default function HomePage() {
@@ -102,6 +130,7 @@ export default function HomePage() {
         title: n.title,
         subtitle: n.content?.substring(0, 50) || '无内容',
         created_at: n.created_at,
+        labels: [n.label_1 ?? null, n.label_2 ?? null, n.label_3 ?? null].filter(l => l !== null),
       }));
 
       const todos: HomeItem[] = (todosData.data || []).map((t: Todo) => ({
@@ -252,6 +281,7 @@ export default function HomePage() {
           title: n.title,
           subtitle: n.content?.substring(0, 50) || '无内容',
           created_at: n.created_at,
+          labels: [n.label_1 ?? null, n.label_2 ?? null, n.label_3 ?? null].filter(l => l !== null),
         })));
       }
     } catch (error) {
@@ -406,6 +436,22 @@ export default function HomePage() {
                         <Text className="text-sm text-muted mt-2 ml-10" numberOfLines={2}>
                           {item.subtitle}
                         </Text>
+                      )}
+                      {item.type === 'note' && item.labels && item.labels.length > 0 && (
+                        <View className="flex-row flex-wrap mt-2 ml-10">
+                          {item.labels.map((labelId, index) => (
+                            <View
+                              key={index}
+                              className="flex-row items-center mr-1.5 mb-1 px-2 py-0.5 rounded-full"
+                              style={{ backgroundColor: LABEL_COLORS[labelId as number] + '20' }}
+                            >
+                              <View className="w-1.5 h-1.5 rounded-full mr-1" style={{ backgroundColor: LABEL_COLORS[labelId as number] }} />
+                              <Text className="text-[10px]" style={{ color: LABEL_COLORS[labelId as number] }}>
+                                {LABELS[labelId as number]}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
                       )}
                       {item.type === 'todo' && item.due_date && (
                         <View className="flex-row items-center mt-2 ml-10">

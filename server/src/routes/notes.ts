@@ -50,12 +50,16 @@ router.get('/:id', async (req, res) => {
 // 创建笔记
 router.post('/', async (req, res) => {
   try {
-    const { title, content } = req.body;
+    const { title, content, label_1, label_2, label_3 } = req.body;
     if (!title) {
       return res.status(400).json({ success: false, error: 'Title is required' });
     }
     const client = getSupabaseClient();
-    const { data, error } = await client.from('notes').insert({ title, content: content || '' }).select();
+    const insertData: any = { title, content: content || '' };
+    if (label_1 !== undefined) insertData.label_1 = label_1;
+    if (label_2 !== undefined) insertData.label_2 = label_2;
+    if (label_3 !== undefined) insertData.label_3 = label_3;
+    const { data, error } = await client.from('notes').insert(insertData).select();
     if (error) throw new Error(`插入失败: ${error.message}`);
     res.status(201).json({ success: true, data });
   } catch (error: any) {
@@ -68,10 +72,15 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, content } = req.body;
+    const { title, content, label_1, label_2, label_3 } = req.body;
     const client = getSupabaseClient();
+    const updateData: any = { title, content, updated_at: new Date().toISOString() };
+    // 标签字段：允许设置为 null 或整数
+    if (label_1 !== undefined) updateData.label_1 = label_1;
+    if (label_2 !== undefined) updateData.label_2 = label_2;
+    if (label_3 !== undefined) updateData.label_3 = label_3;
     const { data, error } = await client.from('notes')
-      .update({ title, content, updated_at: new Date().toISOString() })
+      .update(updateData)
       .eq('id', id)
       .select();
     if (error) throw new Error(`更新失败: ${error.message}`);
