@@ -1,102 +1,55 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { getSupabaseBrowserClientAsync } from '@/lib/supabase-browser';
-import type { Session, User } from '@supabase/supabase-js';
+// @ts-nocheck
+/**
+ * 通用认证上下文
+ *
+ * 基于固定的 API 接口实现，可复用到其他项目
+ * 其他项目使用时，只需修改 @api 的导入路径指向项目的 api 模块
+ *
+ * 注意：
+ * - 如果需要登录/鉴权场景，请扩展本文件，完善 login/logout、token 管理、用户信息获取与刷新等逻辑
+ * - 将示例中的占位实现替换为项目实际的接口调用与状态管理
+ */
+import React, { createContext, useContext, ReactNode } from "react";
+
+interface UserOut {
+
+}
 
 interface AuthContextType {
-  session: Session | null;
-  user: User | null;
+  user: UserOut | null;
+  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  signOut: () => Promise<void>;
+  login: (token: string) => Promise<void>;
+  logout: () => Promise<void>;
+  updateUser: (userData: Partial<UserOut>) => void;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  session: null,
-  user: null,
-  isAuthenticated: false,
-  isLoading: true,
-  signOut: async () => {},
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const value: AuthContextType = {
+    user: null,
+    token: null,
+    isAuthenticated: false,
+    isLoading: false,
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
+    // 登录逻辑，根据项目实际情况实现
+    login: async (token: string) => {}, // eslint-disable-line @typescript-eslint/no-empty-function
 
-export function AuthProvider({ children }: AuthProviderProps) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+    // 登出逻辑，根据项目实际情况实现
+    logout: async () => {}, // eslint-disable-line @typescript-eslint/no-empty-function
 
-  useEffect(() => {
-    let mounted = true;
-
-    const initAuth = async () => {
-      try {
-        const supabase = await getSupabaseBrowserClientAsync();
-        
-        // Get initial session
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        if (mounted) {
-          setSession(initialSession);
-          setUser(initialSession?.user ?? null);
-        }
-
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          (_event, newSession) => {
-            if (mounted) {
-              setSession(newSession);
-              setUser(newSession?.user ?? null);
-            }
-          }
-        );
-
-        setIsLoading(false);
-
-        return () => {
-          subscription.unsubscribe();
-        };
-      } catch (error) {
-        console.error('Auth init error:', error);
-        if (mounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    initAuth();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const signOut = async () => {
-    try {
-      const supabase = await getSupabaseBrowserClientAsync();
-      await supabase.auth.signOut();
-      setSession(null);
-      setUser(null);
-    } catch (error) {
-      console.error('Sign out error:', error);
-    }
+    // 更新用户信息，根据项目实际情况实现
+    updateUser: () => {}, // eslint-disable-line @typescript-eslint/no-empty-function
   };
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
 
-  return (
-    <AuthContext.Provider
-      value={{
-        session,
-        user,
-        isAuthenticated: !!session,
-        isLoading,
-        signOut,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-}
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
