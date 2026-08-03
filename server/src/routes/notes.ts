@@ -23,7 +23,28 @@ router.get('/', async (req, res) => {
     const client = getSupabaseClient();
     const { data, error } = await client.from('notes').select('*').order('updated_at', { ascending: false });
     if (error) throw new Error(`查询失败: ${error.message}`);
-    res.json({ success: true, data });
+    
+    // 获取所有笔记的创建者信息
+    const userIds = [...new Set(data?.filter(n => n.user).map(n => n.user))];
+    let userMap: Record<string, string> = {};
+    
+    if (userIds.length > 0) {
+      const { data: users } = await client.from('users').select('user_id, user_name').in('user_id', userIds);
+      if (users) {
+        userMap = users.reduce((acc: Record<string, string>, u: any) => {
+          acc[u.user_id] = u.user_name;
+          return acc;
+        }, {});
+      }
+    }
+    
+    // 添加创建者昵称到笔记数据
+    const notesWithAuthor = data?.map(note => ({
+      ...note,
+      author_name: note.user ? (userMap[note.user] || '匿名用户') : '匿名用户'
+    }));
+    
+    res.json({ success: true, data: notesWithAuthor });
   } catch (error: any) {
     console.error('Error fetching notes:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -51,6 +72,8 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { title, content, label_1, label_2, label_3 } = req.body;
+    const userId = req.headers['x-user-id'] as string;
+    
     if (!title) {
       return res.status(400).json({ success: false, error: 'Title is required' });
     }
@@ -59,6 +82,8 @@ router.post('/', async (req, res) => {
     if (label_1 !== undefined) insertData.label_1 = label_1;
     if (label_2 !== undefined) insertData.label_2 = label_2;
     if (label_3 !== undefined) insertData.label_3 = label_3;
+    if (userId) insertData.user = userId;
+    
     const { data, error } = await client.from('notes').insert(insertData).select();
     if (error) throw new Error(`插入失败: ${error.message}`);
     res.status(201).json({ success: true, data });

@@ -35,6 +35,8 @@ interface Note {
   label_1?: number | null;
   label_2?: number | null;
   label_3?: number | null;
+  user?: string | null;
+  author_name?: string;
 }
 
 interface Todo {
@@ -58,6 +60,7 @@ interface HomeItem {
   due_date?: string;
   created_at: string;
   labels?: (number | null)[];
+  user_name?: string;
 }
 
 export default function HomePage() {
@@ -121,6 +124,7 @@ export default function HomePage() {
         subtitle: n.content?.substring(0, 50) || '无内容',
         created_at: n.created_at,
         labels: [n.label_1 ?? null, n.label_2 ?? null, n.label_3 ?? null].filter(l => l !== null),
+        user_name: n.author_name || '匿名用户',
       }));
 
       const todos: HomeItem[] = (todosData.data || []).map((t: Todo) => ({
@@ -451,7 +455,11 @@ export default function HomePage() {
                           </Text>
                         </View>
                       )}
-                      <Text className="text-xs text-muted mt-2 ml-10">{formatDate(item.created_at)}</Text>
+                      <View className="flex-row items-center mt-2 ml-10">
+                        <FontAwesome6 name="user" size={10} color="#9CA3AF" />
+                        <Text className="text-xs text-muted ml-1">{item.user_name || '匿名用户'}</Text>
+                        <Text className="text-xs text-muted ml-2">· {formatDate(item.created_at)}</Text>
+                      </View>
                     </View>
                     <TouchableOpacity
                       onPress={() => item.type === 'note' ? handleDeleteNote(item) : handleDeleteTodo(item.id)}

@@ -114,9 +114,13 @@ router.get('/me', async (req, res) => {
       return res.status(401).json({ error: '未登录' });
     }
 
-    const user = await db.query(users).where(eq(users.user_id, userId)).limit(1);
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('user_id, user_name')
+      .eq('user_id', userId)
+      .limit(1);
 
-    if (user.length === 0) {
+    if (error || !user || user.length === 0) {
       return res.status(404).json({ error: '用户不存在' });
     }
 
