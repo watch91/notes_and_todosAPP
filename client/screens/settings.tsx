@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, Switch, Alert } from 'react-native';
 import { useState, useEffect } from 'react';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
@@ -13,10 +13,13 @@ export default function SettingsPage() {
   const router = useSafeRouter();
   const [themeMode, setThemeMode] = useState<ThemeMode>('system');
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
 
   useEffect(() => {
     logger.info('设置', '进入设置页面');
     loadThemeSetting();
+    loadUserInfo();
   }, []);
 
   const loadThemeSetting = async () => {
@@ -27,9 +30,41 @@ export default function SettingsPage() {
       }
     } catch (e) {
       logger.error('设置', e instanceof Error ? e : new Error(String(e)));
+    }
+  };
+
+  const loadUserInfo = async () => {
+    try {
+      const id = await AsyncStorage.getItem('user_id');
+      const name = await AsyncStorage.getItem('user_name');
+      setUserId(id);
+      setUserName(name);
+    } catch (e) {
+      logger.error('设置', e instanceof Error ? e : new Error(String(e)));
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleLogout = () => {
+    Alert.alert('退出登录', '确定要退出登录吗？', [
+      { text: '取消', style: 'cancel' },
+      {
+        text: '确定',
+        onPress: async () => {
+          try {
+            await AsyncStorage.removeItem('user_id');
+            await AsyncStorage.removeItem('user_name');
+            setUserId(null);
+            setUserName(null);
+            logger.info('设置', '用户退出登录');
+            router.back();
+          } catch (e) {
+            logger.error('设置', e instanceof Error ? e : new Error(String(e)));
+          }
+        },
+      },
+    ]);
   };
 
   const handleThemeChange = async (mode: ThemeMode) => {
@@ -65,6 +100,59 @@ export default function SettingsPage() {
           <Text className="flex-1 text-xl font-bold text-foreground text-center mr-10">设置</Text>
         </View>
 
+        {/* Account Info */}
+        <View className="mx-5 mt-4">
+          <Text className="text-sm text-muted mb-3 ml-1">账号信息</Text>
+          <View className="bg-white rounded-2xl overflow-hidden shadow-sm"
+            style={{
+              shadowColor: '#4F46E5',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 8,
+              elevation: 2,
+            }}
+          >
+            {userId ? (
+              <>
+                <View className="flex-row items-center px-5 py-4 border-b border-gray-100">
+                  <View className="w-10 h-10 rounded-xl bg-purple-50 items-center justify-center">
+                    <FontAwesome6 name="circle-user" size={16} color="#8B5CF6" />
+                  </View>
+                  <View className="flex-1 ml-3">
+                    <Text className="font-medium text-foreground">{userName || '未设置昵称'}</Text>
+                    <Text className="text-xs text-muted mt-0.5">ID: {userId}</Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  onPress={handleLogout}
+                  className="flex-row items-center px-5 py-4"
+                >
+                  <View className="w-10 h-10 rounded-xl bg-red-50 items-center justify-center">
+                    <FontAwesome6 name="right-from-bracket" size={16} color="#EF4444" />
+                  </View>
+                  <View className="flex-1 ml-3">
+                    <Text className="font-medium text-red-500">退出登录</Text>
+                  </View>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity
+                onPress={() => router.push('/login')}
+                className="flex-row items-center px-5 py-4"
+              >
+                <View className="w-10 h-10 rounded-xl bg-indigo-50 items-center justify-center">
+                  <FontAwesome6 name="user-plus" size={16} color="#4F46E5" />
+                </View>
+                <View className="flex-1 ml-3">
+                  <Text className="font-medium text-foreground">登录/注册</Text>
+                  <Text className="text-xs text-muted mt-0.5">点击登录或创建账号</Text>
+                </View>
+                <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
         {/* Theme Settings */}
         <View className="mx-5 mt-4">
           <Text className="text-sm text-muted mb-3 ml-1">外观设置</Text>
@@ -82,7 +170,7 @@ export default function SettingsPage() {
               className="flex-row items-center px-5 py-4 border-b border-gray-100"
             >
               <View className="w-10 h-10 rounded-xl bg-blue-50 items-center justify-center">
-                <FontAwesome6 name="mobile-screen" size={16} color="#3B82F6" />
+                <FontAwesome6 name="mobile" size={16} color="#3B82F6" />
               </View>
               <View className="flex-1 ml-3">
                 <Text className="font-medium text-foreground">跟随系统</Text>
