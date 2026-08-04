@@ -58,7 +58,7 @@ export default function SettingsPage() {
             setUserId(null);
             setUserName(null);
             logger.info('设置', '用户退出登录');
-            router.back();
+            router.replace('/');
           } catch (e) {
             logger.error('设置', e instanceof Error ? e : new Error(String(e)));
           }

@@ -44,7 +44,7 @@ export default function LoginPage() {
         await AsyncStorage.setItem('user_name', data.data.userName);
         logger.info('登录', `用户 ${data.data.userName} 登录成功`);
         Alert.alert('登录成功', `欢迎回来，${data.data.userName}！`);
-        router.back();
+        router.replace('/settings');
       } else {
         Alert.alert('登录失败', data.error || '账号或密码错误');
       }
@@ -113,7 +113,7 @@ export default function LoginPage() {
       await AsyncStorage.setItem('user_name', registeredInfo.userName);
       logger.info('注册', `用户 ${registeredInfo.userName} 已登录`);
       Alert.alert('注册成功', `欢迎，${registeredInfo.userName}！`);
-      router.back();
+      router.replace('/settings');
     }
   };
 
