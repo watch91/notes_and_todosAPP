@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, Alert, Image } from 'react-native';
 import { FontAwesome6 } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { logger } from '@/utils/logger';
@@ -155,9 +156,14 @@ export default function NoteEditPage() {
         });
       } else {
         logger.info('笔记编辑', `创建笔记: ${title}`);
+        const userId = await AsyncStorage.getItem('user_id');
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (userId) {
+          headers['x-user-id'] = userId;
+        }
         const res = await fetch(`${API_BASE}/api/v1/notes`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ title, content, ...labelData }),
         });
         const data = await res.json();

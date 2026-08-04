@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Switch, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Switch, Alert, Platform } from 'react-native';
 import { useState, useEffect } from 'react';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
@@ -47,24 +47,36 @@ export default function SettingsPage() {
   };
 
   const handleLogout = () => {
-    Alert.alert('退出登录', '确定要退出登录吗？', [
-      { text: '取消', style: 'cancel' },
-      {
-        text: '确定',
-        onPress: async () => {
-          try {
-            await AsyncStorage.removeItem('user_id');
-            await AsyncStorage.removeItem('user_name');
-            setUserId(null);
-            setUserName(null);
-            logger.info('设置', '用户退出登录');
-            router.replace('/');
-          } catch (e) {
-            logger.error('设置', e instanceof Error ? e : new Error(String(e)));
-          }
+    // Web 端使用 window.confirm，移动端使用 Alert
+    if (Platform.OS === 'web') {
+      if (window.confirm('确定要退出登录吗？')) {
+        AsyncStorage.removeItem('user_id');
+        AsyncStorage.removeItem('user_name');
+        setUserId(null);
+        setUserName(null);
+        logger.info('设置', '用户退出登录');
+        router.replace('/');
+      }
+    } else {
+      Alert.alert('退出登录', '确定要退出登录吗？', [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确定',
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem('user_id');
+              await AsyncStorage.removeItem('user_name');
+              setUserId(null);
+              setUserName(null);
+              logger.info('设置', '用户退出登录');
+              router.replace('/');
+            } catch (e) {
+              logger.error('设置', e instanceof Error ? e : new Error(String(e)));
+            }
+          },
         },
-      },
-    ]);
+      ]);
+    }
   };
 
   const handleThemeChange = async (mode: ThemeMode) => {
