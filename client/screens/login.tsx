@@ -28,22 +28,22 @@ export default function LoginPage() {
       /**
        * 服务端文件：server/src/routes/auth.ts
        * 接口：POST /api/v1/auth/login
-       * Body 参数：userName: string, password: string
+       * Body 参数：user_id: string, password: string
        */
       const response = await fetch(`${API_BASE}/api/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_name: userName.trim(), password }),
+        body: JSON.stringify({ user_id: userName.trim(), password }),
       });
 
       const data = await response.json();
 
       if (response.ok && data.success) {
         // 保存用户信息
-        await AsyncStorage.setItem('user_id', data.data.userId);
-        await AsyncStorage.setItem('user_name', data.data.userName);
-        logger.info('登录', `用户 ${data.data.userName} 登录成功`);
-        Alert.alert('登录成功', `欢迎回来，${data.data.userName}！`);
+        await AsyncStorage.setItem('user_id', data.data.user_id);
+        await AsyncStorage.setItem('user_name', data.data.user_name);
+        logger.info('登录', `用户 ${data.data.user_name} 登录成功`);
+        Alert.alert('登录成功', `欢迎回来，${data.data.user_name}！`);
         router.replace('/settings');
       } else {
         Alert.alert('登录失败', data.error || '账号或密码错误');
