@@ -61,6 +61,7 @@ interface HomeItem {
   created_at: string;
   labels?: (number | null)[];
   user_name?: string;
+  user?: string | null;
 }
 
 export default function HomePage() {
@@ -125,6 +126,7 @@ export default function HomePage() {
         created_at: n.created_at,
         labels: [n.label_1 ?? null, n.label_2 ?? null, n.label_3 ?? null].filter(l => l !== null),
         user_name: n.author_name || '匿名用户',
+        user: n.user,
       }));
 
       const todos: HomeItem[] = (todosData.data || []).map((t: Todo) => ({
@@ -157,7 +159,30 @@ export default function HomePage() {
     setRefreshing(false);
   };
 
-  const handleDeleteNote = (item: HomeItem) => {
+  const handleDeleteNote = async (item: HomeItem) => {
+    // 检查用户登录态和权限
+    const userId = await AsyncStorage.getItem('user_id');
+    
+    // 未登录，提示无权限
+    if (!userId) {
+      if (Platform.OS === 'web') {
+        window.alert('你暂无执行此操作的权限');
+      } else {
+        Alert.alert('提示', '你暂无执行此操作的权限');
+      }
+      return;
+    }
+    
+    // 检查是否是笔记作者
+    if (item.user && item.user !== userId) {
+      if (Platform.OS === 'web') {
+        window.alert('你暂无执行此操作的权限');
+      } else {
+        Alert.alert('提示', '你暂无执行此操作的权限');
+      }
+      return;
+    }
+    
     const contentLength = item.subtitle?.length || 0;
     
     setDeleteConfirmItem(item);
