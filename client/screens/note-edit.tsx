@@ -62,6 +62,7 @@ export default function NoteEditPage() {
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [labels, setLabels] = useState<(number | null)[]>([null, null, null]);
   const [labelModalVisible, setLabelModalVisible] = useState(false);
+  const [noteAuthor, setNoteAuthor] = useState<string | null>(null);
 
   const isEditing = !!params.id;
 
@@ -81,6 +82,8 @@ export default function NoteEditPage() {
       if (data.success) {
         setTitle(data.data.title);
         setContent(data.data.content || '');
+        // 保存作者ID
+        setNoteAuthor(data.data.user || null);
         // 读取标签
         setLabels([
           data.data.label_1 ?? null,
@@ -253,6 +256,23 @@ export default function NoteEditPage() {
     setLabels(sortedLabels);
   };
 
+  // 检查是否有编辑权限
+  const handleEditPress = async () => {
+    if (!params.id) return;
+    
+    // 获取当前登录用户ID
+    const currentUserId = await AsyncStorage.getItem('user_id');
+    
+    // 检查权限：未登录或不是作者
+    if (!currentUserId || currentUserId !== noteAuthor) {
+      Alert.alert('抱歉，您无权限');
+      return;
+    }
+    
+    // 有权限，切换到编辑模式
+    setIsReadOnly(false);
+  };
+
   const handlePickImage = async () => {
     if (!params.id) {
       Alert.alert('提示', '请先保存笔记后再添加图片');
@@ -405,7 +425,7 @@ export default function NoteEditPage() {
           </Text>
           {isReadOnly && isEditing ? (
             <TouchableOpacity
-              onPress={() => setIsReadOnly(false)}
+              onPress={handleEditPress}
               className="px-4 py-2 rounded-full bg-accent"
             >
               <Text className="text-white font-medium text-sm">编辑</Text>
