@@ -226,14 +226,14 @@ export default function LoginPage() {
 
           {/* Form */}
           <View className="space-y-4">
-            {/* 昵称 */}
+            {/* 账号ID/昵称 */}
             <View>
-              <Text className="text-sm text-muted mb-2 ml-1">账号ID</Text>
+              <Text className="text-sm text-muted mb-2 ml-1">{mode === 'login' ? '账号ID' : '账号昵称'}</Text>
               <View className="flex-row items-center bg-gray-100 rounded-xl px-4 py-3">
                 <FontAwesome6 name="user" size={16} color="#9CA3AF" />
                 <TextInput
                   className="flex-1 ml-3 text-base text-foreground"
-                  placeholder="请输入账号ID"
+                  placeholder={mode === 'login' ? '请输入账号ID' : '请输入账号昵称'}
                   placeholderTextColor="#9CA3AF"
                   value={userName}
                   onChangeText={setUserName}
