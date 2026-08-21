@@ -264,8 +264,13 @@ export default function NoteEditPage() {
     const currentUserId = await AsyncStorage.getItem('user_id');
     
     // 检查权限：未登录或不是作者
-    if (!currentUserId || currentUserId !== noteAuthor) {
-      Alert.alert('抱歉，您无权限');
+    if (!currentUserId) {
+      Alert.alert('提示', '您无进行此操作的权限，请在"我的"→"设置"→"登录/注册"中登录您的账号后尝试');
+      return;
+    }
+    
+    if (currentUserId !== noteAuthor) {
+      Alert.alert('提示', '您无进行此操作的权限，因为您并非该笔记的作者');
       return;
     }
     

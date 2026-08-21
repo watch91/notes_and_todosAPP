@@ -165,20 +165,22 @@ export default function HomePage() {
     
     // 未登录，提示无权限
     if (!userId) {
+      const msg = '您无进行此操作的权限，请在"我的"→"设置"→"登录/注册"中登录您的账号后尝试';
       if (Platform.OS === 'web') {
-        window.alert('你暂无执行此操作的权限');
+        window.alert(msg);
       } else {
-        Alert.alert('提示', '你暂无执行此操作的权限');
+        Alert.alert('提示', msg);
       }
       return;
     }
     
     // 检查是否是笔记作者
     if (item.user && item.user !== userId) {
+      const msg = '您无进行此操作的权限，因为您并非该笔记的作者';
       if (Platform.OS === 'web') {
-        window.alert('你暂无执行此操作的权限');
+        window.alert(msg);
       } else {
-        Alert.alert('提示', '你暂无执行此操作的权限');
+        Alert.alert('提示', msg);
       }
       return;
     }
