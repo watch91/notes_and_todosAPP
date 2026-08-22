@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, Alert, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, Alert, Image, Linking } from 'react-native';
 import { FontAwesome6 } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -43,6 +43,27 @@ interface Picture {
   image_url: string;
   created_at: string;
 }
+
+// 解析文本中的网址并渲染为可点击链接
+const renderTextWithLinks = (text: string) => {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  
+  return parts.map((part, index) => {
+    if (urlRegex.test(part)) {
+      return (
+        <Text
+          key={index}
+          style={{ color: '#3B82F6', textDecorationLine: 'underline' }}
+          onPress={() => Linking.openURL(part)}
+        >
+          {part}
+        </Text>
+      );
+    }
+    return <Text key={index}>{part}</Text>;
+  });
+};
 
 export default function NoteEditPage() {
   const router = useSafeRouter();
@@ -534,7 +555,7 @@ export default function NoteEditPage() {
             }}
           >
             {isReadOnly && isEditing ? (
-              <Text className="text-base text-foreground whitespace-pre-wrap">{content || '无内容'}</Text>
+              <Text className="text-base text-foreground whitespace-pre-wrap">{content ? renderTextWithLinks(content) : '无内容'}</Text>
             ) : (
               <TextInput
                 value={content}
