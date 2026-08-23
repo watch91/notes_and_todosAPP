@@ -84,6 +84,7 @@ export default function NoteEditPage() {
   const [labels, setLabels] = useState<(number | null)[]>([null, null, null]);
   const [labelModalVisible, setLabelModalVisible] = useState(false);
   const [noteAuthor, setNoteAuthor] = useState<string | null>(null);
+  const [noteAuthorName, setNoteAuthorName] = useState<string | null>(null);
   const [isAuthor, setIsAuthor] = useState(false);
   const [collaborators, setCollaborators] = useState<{ user_id: string; user_name: string }[]>([]);
   const [collaboratorModalVisible, setCollaboratorModalVisible] = useState(false);
@@ -114,6 +115,8 @@ export default function NoteEditPage() {
         setContent(data.data.content || '');
         // 保存作者ID
         setNoteAuthor(data.data.user || null);
+        // 保存作者昵称
+        setNoteAuthorName(data.data.author_name || null);
         // 保存协作者列表
         setCollaborators(data.data.collaborators || []);
         // 保存创建/更新时间
@@ -941,7 +944,7 @@ export default function NoteEditPage() {
                   <FontAwesome6 name="user" size={14} color="#6B7280" />
                   <Text className="text-sm text-gray-600 ml-2">作者：</Text>
                   <Text className="text-sm text-foreground font-medium ml-1">
-                    {noteAuthor ? (collaborators.length > 0 ? `${noteAuthor} 等` : noteAuthor) : '匿名用户'}
+                    {noteAuthorName ? `${noteAuthorName}(${noteAuthor})` : (noteAuthor ? `用户${noteAuthor}` : '匿名用户')}
                   </Text>
                 </View>
 
@@ -950,7 +953,7 @@ export default function NoteEditPage() {
                   <FontAwesome6 name="user-group" size={14} color="#6B7280" />
                   <Text className="text-sm text-gray-600 ml-2">协作者：</Text>
                   <Text className="text-sm text-foreground ml-1">
-                    {collaborators.length > 0 ? collaborators.map(c => c.user_name).join('、') : '无'}
+                    {collaborators.length > 0 ? collaborators.map(c => `${c.user_name}(${c.user_id})`).join('、') : '无'}
                   </Text>
                 </View>
 

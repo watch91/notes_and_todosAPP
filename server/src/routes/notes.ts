@@ -87,7 +87,14 @@ router.get('/:id', async (req, res) => {
       collaborators = users || [];
     }
     
-    res.json({ success: true, data: { ...data, collaborators } });
+    // 获取作者昵称
+    let author_name = null;
+    if (data.user) {
+      const { data: authorData } = await client.from('users').select('user_name').eq('user_id', data.user).maybeSingle();
+      author_name = authorData?.user_name || null;
+    }
+    
+    res.json({ success: true, data: { ...data, collaborators, author_name } });
   } catch (error: any) {
     console.error('Error fetching note:', error);
     res.status(500).json({ success: false, error: error.message });
