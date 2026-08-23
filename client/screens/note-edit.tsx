@@ -46,7 +46,7 @@ interface Picture {
 
 // 解析文本中的网址并渲染为可点击链接
 const renderTextWithLinks = (text: string) => {
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const urlRegex = /(https?:\/\/\S+)/g;
   const parts = text.split(urlRegex);
   
   return parts.map((part, index) => {
@@ -84,6 +84,11 @@ export default function NoteEditPage() {
   const [labels, setLabels] = useState<(number | null)[]>([null, null, null]);
   const [labelModalVisible, setLabelModalVisible] = useState(false);
   const [noteAuthor, setNoteAuthor] = useState<string | null>(null);
+  const [collaborators, setCollaborators] = useState<{ user_id: string; user_name: string }[]>([]);
+  const [collaboratorModalVisible, setCollaboratorModalVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<{ user_id: string; user_name: string }[]>([]);
+  const [searching, setSearching] = useState(false);
 
   const isEditing = !!params.id;
 
@@ -105,6 +110,8 @@ export default function NoteEditPage() {
         setContent(data.data.content || '');
         // 保存作者ID
         setNoteAuthor(data.data.user || null);
+        // 保存协作者列表
+        setCollaborators(data.data.collaborators || []);
         // 读取标签
         setLabels([
           data.data.label_1 ?? null,
@@ -277,26 +284,156 @@ export default function NoteEditPage() {
     setLabels(sortedLabels);
   };
 
-  // 检查是否有编辑权限
+  // 检查是否有编辑权限（作者或协作者可以编辑）
   const handleEditPress = async () => {
     if (!params.id) return;
     
     // 获取当前登录用户ID
     const currentUserId = await AsyncStorage.getItem('user_id');
     
-    // 检查权限：未登录或不是作者
+    // 检查权限：未登录
     if (!currentUserId) {
       Alert.alert('提示', '您无进行此操作的权限，请在"我的"→"设置"→"登录/注册"中登录您的账号后尝试');
       return;
     }
     
-    if (currentUserId !== noteAuthor) {
-      Alert.alert('提示', '您无进行此操作的权限，因为您并非该笔记的作者');
+    // 检查是否是作者或协作者
+    const isAuthor = currentUserId === noteAuthor;
+    const isCollaborator = collaborators.some(c => c.user_id === currentUserId);
+    
+    if (!isAuthor && !isCollaborator) {
+      Alert.alert('提示', '您无进行此操作的权限，因为您并非该笔记的作者或协作者');
       return;
     }
     
     // 有权限，切换到编辑模式
     setIsReadOnly(false);
+  };
+
+  // 搜索用户（用于添加协作者）
+  const handleSearchUsers = async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    
+    setSearching(true);
+    try {
+      /**
+       * 服务端文件：server/src/routes/notes.ts
+       * 接口：GET /api/v1/notes/search/users
+       * Query 参数：q: string
+       */
+      const res = await fetch(`${API_BASE}/api/v1/notes/search/users?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (data.success) {
+        // 过滤掉已经是协作者的用户和作者
+        const currentUserId = await AsyncStorage.getItem('user_id');
+        const filtered = data.data.filter((u: any) => 
+          u.user_id !== noteAuthor && 
+          !collaborators.some(c => c.user_id === u.user_id) &&
+          u.user_id !== currentUserId
+        );
+        setSearchResults(filtered);
+      }
+    } catch (error) {
+      console.error('Search users error:', error);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  // 添加协作者
+  const handleAddCollaborator = async (userId: string, userName: string) => {
+    if (!params.id) return;
+    
+    try {
+      const currentUserId = await AsyncStorage.getItem('user_id');
+      /**
+       * 服务端文件：server/src/routes/notes.ts
+       * 接口：POST /api/v1/notes/:id/collaborators
+       * Body 参数：user_id: string
+       * Header：x-user-id: string
+       */
+      const res = await fetch(`${API_BASE}/api/v1/notes/${params.id}/collaborators`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-user-id': currentUserId || '',
+        },
+        body: JSON.stringify({ user_id: userId }),
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        setCollaborators([...collaborators, { user_id: userId, user_name: userName }]);
+        setSearchResults(searchResults.filter(u => u.user_id !== userId));
+        setSearchQuery('');
+        Alert.alert('成功', `已添加 ${userName} 为协作者`);
+      } else {
+        Alert.alert('错误', data.error || '添加协作者失败');
+      }
+    } catch (error) {
+      console.error('Add collaborator error:', error);
+      Alert.alert('错误', '添加协作者失败');
+    }
+  };
+
+  // 删除协作者
+  const handleRemoveCollaborator = async (userId: string, userName: string) => {
+    if (!params.id) return;
+    
+    Alert.alert(
+      '确认删除',
+      `确定要移除协作者 ${userName} 吗？`,
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '删除',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const currentUserId = await AsyncStorage.getItem('user_id');
+              /**
+               * 服务端文件：server/src/routes/notes.ts
+               * 接口：DELETE /api/v1/notes/:id/collaborators/:userId
+               * Header：x-user-id: string
+               */
+              const res = await fetch(`${API_BASE}/api/v1/notes/${params.id}/collaborators/${userId}`, {
+                method: 'DELETE',
+                headers: { 'x-user-id': currentUserId || '' },
+              });
+              
+              const data = await res.json();
+              if (data.success) {
+                setCollaborators(collaborators.filter(c => c.user_id !== userId));
+                Alert.alert('成功', `已移除协作者 ${userName}`);
+              } else {
+                Alert.alert('错误', data.error || '删除协作者失败');
+              }
+            } catch (error) {
+              console.error('Remove collaborator error:', error);
+              Alert.alert('错误', '删除协作者失败');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // 打开协作者管理弹窗
+  const handleOpenCollaboratorModal = async () => {
+    const currentUserId = await AsyncStorage.getItem('user_id');
+    const isAuthor = currentUserId === noteAuthor;
+    
+    if (!isAuthor) {
+      Alert.alert('抱歉，您无进行此操作的权限！');
+      return;
+    }
+    
+    setCollaboratorModalVisible(true);
+    setSearchQuery('');
+    setSearchResults([]);
   };
 
   const handlePickImage = async () => {
@@ -464,6 +601,15 @@ export default function NoteEditPage() {
                   className="p-2 -mr-2"
                 >
                   <FontAwesome6 name="wand-magic-sparkles" size={18} color="#4F46E5" /><Text className="text-xs text-indigo-600 ml-1">一键总结</Text>
+                </TouchableOpacity>
+              )}
+              {isEditing && (
+                <TouchableOpacity
+                  onPress={handleOpenCollaboratorModal}
+                  className="flex-row items-center px-3 py-2 mr-2 rounded-full bg-indigo-100"
+                >
+                  <FontAwesome6 name="user-group" size={14} color="#4F46E5" />
+                  <Text className="text-xs text-indigo-600 ml-1">协作者({collaborators.length})</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -750,6 +896,100 @@ export default function NoteEditPage() {
                     );
                   })}
                 </View>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Collaborator Management Modal */}
+        <Modal
+          visible={collaboratorModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setCollaboratorModalVisible(false)}
+        >
+          <View className="flex-1 bg-black/50 justify-center items-center p-5">
+            <View className="bg-white rounded-2xl w-full max-h-[70%]">
+              {/* Header */}
+              <View className="flex-row items-center justify-between p-4 border-b border-gray-200">
+                <Text className="text-lg font-bold text-foreground">协作者管理</Text>
+                <TouchableOpacity onPress={() => setCollaboratorModalVisible(false)}>
+                  <FontAwesome6 name="xmark" size={20} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView className="p-4" showsVerticalScrollIndicator={false}>
+                {/* Current Collaborators */}
+                <Text className="text-sm font-medium text-gray-600 mb-2">当前协作者 ({collaborators.length})</Text>
+                {collaborators.length === 0 ? (
+                  <Text className="text-sm text-gray-400 mb-4">暂无协作者</Text>
+                ) : (
+                  <View className="mb-4">
+                    {collaborators.map((collab) => (
+                      <View key={collab.user_id} className="flex-row items-center justify-between py-2 border-b border-gray-100">
+                        <View className="flex-row items-center flex-1">
+                          <View className="w-8 h-8 rounded-full bg-indigo-100 items-center justify-center mr-2">
+                            <FontAwesome6 name="user" size={14} color="#4F46E5" />
+                          </View>
+                          <Text className="text-sm text-foreground flex-1">{collab.user_name}</Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => handleRemoveCollaborator(collab.user_id, collab.user_name)}
+                          className="px-3 py-1 rounded-full bg-red-100"
+                        >
+                          <Text className="text-xs text-red-500">移除</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* Search and Add */}
+                <Text className="text-sm font-medium text-gray-600 mb-2">添加协作者</Text>
+                <View className="flex-row items-center bg-gray-100 rounded-xl px-3 py-2 mb-2">
+                  <FontAwesome6 name="magnifyingGlass" size={14} color="#9CA3AF" />
+                  <TextInput
+                    className="flex-1 ml-2 text-sm text-foreground"
+                    placeholder="搜索用户昵称..."
+                    placeholderTextColor="#9CA3AF"
+                    value={searchQuery}
+                    onChangeText={(text) => {
+                      setSearchQuery(text);
+                      handleSearchUsers(text);
+                    }}
+                    style={{ outline: 'none' }}
+                  />
+                </View>
+
+                {searching && (
+                  <View className="py-2 items-center">
+                    <ActivityIndicator size="small" color="#4F46E5" />
+                  </View>
+                )}
+
+                {!searching && searchQuery && searchResults.length === 0 && (
+                  <Text className="text-sm text-gray-400 text-center py-2">未找到用户</Text>
+                )}
+
+                {searchResults.map((user) => (
+                  <View key={user.user_id} className="flex-row items-center justify-between py-2 border-b border-gray-100">
+                    <View className="flex-row items-center flex-1">
+                      <View className="w-8 h-8 rounded-full bg-green-100 items-center justify-center mr-2">
+                        <FontAwesome6 name="user-plus" size={14} color="#10B981" />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-sm text-foreground">{user.user_name}</Text>
+                        <Text className="text-xs text-gray-400">ID: {user.user_id}</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => handleAddCollaborator(user.user_id, user.user_name)}
+                      className="px-3 py-1 rounded-full bg-indigo-500"
+                    >
+                      <Text className="text-xs text-white">添加</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
               </ScrollView>
             </View>
           </View>
