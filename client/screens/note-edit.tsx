@@ -122,9 +122,16 @@ export default function NoteEditPage() {
         // 保存创建/更新时间
         setNoteCreatedAt(data.data.created_at || '');
         setNoteUpdatedAt(data.data.updated_at || '');
-        // 检查当前用户是否是作者
+        // 检查当前用户是否有编辑权限
+        // 匿名笔记：任何人都有编辑权限
+        // 非匿名笔记：只有作者或协作者有编辑权限
         const currentUserId = await AsyncStorage.getItem('user_id');
-        setIsAuthor(currentUserId === (data.data.user || null));
+        const isAnonymous = !data.data.user;
+        const isActualAuthor = currentUserId === data.data.user;
+        const isCollaborator = (data.data.collaborators || []).some(
+          (c: { user_id: string }) => c.user_id === currentUserId
+        );
+        setIsAuthor(isAnonymous || isActualAuthor);
         // 读取标签
         setLabels([
           data.data.label_1 ?? null,
@@ -297,9 +304,15 @@ export default function NoteEditPage() {
     setLabels(sortedLabels);
   };
 
-  // 检查是否有编辑权限（作者或协作者可以编辑）
+  // 检查是否有编辑权限（作者、协作者可以编辑，匿名笔记任何人都可以编辑）
   const handleEditPress = async () => {
     if (!params.id) return;
+    
+    // 匿名笔记：任何人都可以编辑
+    if (!noteAuthor) {
+      setIsReadOnly(false);
+      return;
+    }
     
     // 获取当前登录用户ID
     const currentUserId = await AsyncStorage.getItem('user_id');
@@ -442,7 +455,9 @@ export default function NoteEditPage() {
   };
 
   // 检查当前用户是否是作者（用于协作者弹窗中的权限控制）
+  // 匿名笔记：任何人都可以管理协作者
   const checkIsAuthor = async () => {
+    if (!noteAuthor) return true; // 匿名笔记，任何人都有权限
     const currentUserId = await AsyncStorage.getItem('user_id');
     return currentUserId === noteAuthor;
   };

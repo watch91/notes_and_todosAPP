@@ -177,8 +177,19 @@ export default function HomePage() {
       return;
     }
     
+    // 检查是否是匿名笔记（任何人都不能删除）
+    if (!item.user) {
+      const msg = '您无进行此操作的权限，因为这是匿名笔记';
+      if (Platform.OS === 'web') {
+        window.alert(msg);
+      } else {
+        Alert.alert('提示', msg);
+      }
+      return;
+    }
+    
     // 检查是否是笔记作者
-    if (item.user && item.user !== userId) {
+    if (item.user !== userId) {
       const msg = '您无进行此操作的权限，因为您并非该笔记的作者';
       if (Platform.OS === 'web') {
         window.alert(msg);
