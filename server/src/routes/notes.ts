@@ -38,11 +38,21 @@ router.get('/', async (req, res) => {
       }
     }
     
-    // 添加创建者昵称到笔记数据
-    const notesWithAuthor = data?.map(note => ({
-      ...note,
-      author_name: note.user ? (userMap[note.user] || '匿名用户') : '匿名用户'
-    }));
+    // 添加创建者昵称和协作者数量到笔记数据
+    const notesWithAuthor = data?.map(note => {
+      let collaboratorCount = 0;
+      try {
+        const collabIds = JSON.parse(note.collaborators || '[]');
+        collaboratorCount = collabIds.length;
+      } catch {
+        collaboratorCount = 0;
+      }
+      return {
+        ...note,
+        author_name: note.user ? (userMap[note.user] || '匿名用户') : '匿名用户',
+        collaborator_count: collaboratorCount
+      };
+    });
     
     res.json({ success: true, data: notesWithAuthor });
   } catch (error: any) {

@@ -37,6 +37,7 @@ interface Note {
   label_3?: number | null;
   user?: string | null;
   author_name?: string;
+  collaborator_count?: number;
 }
 
 interface Todo {
@@ -62,6 +63,7 @@ interface HomeItem {
   labels?: (number | null)[];
   user_name?: string;
   user?: string | null;
+  collaborator_count?: number;
 }
 
 export default function HomePage() {
@@ -127,6 +129,7 @@ export default function HomePage() {
         labels: [n.label_1 ?? null, n.label_2 ?? null, n.label_3 ?? null].filter(l => l !== null),
         user_name: n.author_name || '匿名用户',
         user: n.user,
+        collaborator_count: n.collaborator_count || 0,
       }));
 
       const todos: HomeItem[] = (todosData.data || []).map((t: Todo) => ({
@@ -484,7 +487,11 @@ export default function HomePage() {
                       )}
                       <View className="flex-row items-center mt-2 ml-10">
                         <FontAwesome6 name="user" size={10} color="#9CA3AF" />
-                        <Text className="text-xs text-muted ml-1">{item.user_name || '匿名用户'}</Text>
+                        <Text className="text-xs text-muted ml-1">
+                          {(item.collaborator_count && item.collaborator_count > 0) 
+                            ? `${item.user_name || '匿名用户'} 等` 
+                            : (item.user_name || '匿名用户')}
+                        </Text>
                         <Text className="text-xs text-muted ml-2">· {formatDate(item.created_at)}</Text>
                       </View>
                     </View>

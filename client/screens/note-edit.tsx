@@ -84,11 +84,15 @@ export default function NoteEditPage() {
   const [labels, setLabels] = useState<(number | null)[]>([null, null, null]);
   const [labelModalVisible, setLabelModalVisible] = useState(false);
   const [noteAuthor, setNoteAuthor] = useState<string | null>(null);
+  const [isAuthor, setIsAuthor] = useState(false);
   const [collaborators, setCollaborators] = useState<{ user_id: string; user_name: string }[]>([]);
   const [collaboratorModalVisible, setCollaboratorModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<{ user_id: string; user_name: string }[]>([]);
   const [searching, setSearching] = useState(false);
+  const [noteInfoModalVisible, setNoteInfoModalVisible] = useState(false);
+  const [noteCreatedAt, setNoteCreatedAt] = useState<string>('');
+  const [noteUpdatedAt, setNoteUpdatedAt] = useState<string>('');
 
   const isEditing = !!params.id;
 
@@ -112,6 +116,12 @@ export default function NoteEditPage() {
         setNoteAuthor(data.data.user || null);
         // 保存协作者列表
         setCollaborators(data.data.collaborators || []);
+        // 保存创建/更新时间
+        setNoteCreatedAt(data.data.created_at || '');
+        setNoteUpdatedAt(data.data.updated_at || '');
+        // 检查当前用户是否是作者
+        const currentUserId = await AsyncStorage.getItem('user_id');
+        setIsAuthor(currentUserId === (data.data.user || null));
         // 读取标签
         setLabels([
           data.data.label_1 ?? null,
@@ -423,17 +433,15 @@ export default function NoteEditPage() {
 
   // 打开协作者管理弹窗
   const handleOpenCollaboratorModal = async () => {
-    const currentUserId = await AsyncStorage.getItem('user_id');
-    const isAuthor = currentUserId === noteAuthor;
-    
-    if (!isAuthor) {
-      Alert.alert('抱歉，您无进行此操作的权限！');
-      return;
-    }
-    
     setCollaboratorModalVisible(true);
     setSearchQuery('');
     setSearchResults([]);
+  };
+
+  // 检查当前用户是否是作者（用于协作者弹窗中的权限控制）
+  const checkIsAuthor = async () => {
+    const currentUserId = await AsyncStorage.getItem('user_id');
+    return currentUserId === noteAuthor;
   };
 
   const handlePickImage = async () => {
@@ -587,12 +595,21 @@ export default function NoteEditPage() {
             {isReadOnly && isEditing ? '阅读模式' : (isEditing ? '编辑笔记' : '新建笔记')}
           </Text>
           {isReadOnly && isEditing ? (
-            <TouchableOpacity
-              onPress={handleEditPress}
-              className="px-4 py-2 rounded-full bg-accent"
-            >
-              <Text className="text-white font-medium text-sm">编辑</Text>
-            </TouchableOpacity>
+            <View className="flex-row items-center">
+              <TouchableOpacity
+                onPress={() => setNoteInfoModalVisible(true)}
+                className="flex-row items-center px-3 py-2 mr-2 rounded-full bg-gray-100"
+              >
+                <FontAwesome6 name="circle-info" size={14} color="#6B7280" />
+                <Text className="text-xs text-gray-600 ml-1">笔记信息</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleEditPress}
+                className="px-4 py-2 rounded-full bg-accent"
+              >
+                <Text className="text-white font-medium text-sm">编辑</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             <>
               {content.trim() && (
@@ -648,8 +665,8 @@ export default function NoteEditPage() {
             )}
           </View>
 
-          {/* Labels */}
-          {(labels.filter(l => l !== null).length > 0 || !isReadOnly) && (
+          {/* Labels - Only show in edit mode */}
+          {!isReadOnly && (
             <View className="bg-white rounded-2xl p-4 mb-4"
               style={{
                 shadowColor: '#4F46E5',
@@ -661,7 +678,7 @@ export default function NoteEditPage() {
             >
               <View className="flex-row items-center justify-between">
                 <Text className="text-sm font-medium text-gray-600">标签</Text>
-                {!isReadOnly && (
+                {!isReadOnly && isAuthor && (
                   <TouchableOpacity
                     onPress={() => setLabelModalVisible(true)}
                     className="flex-row items-center bg-indigo-100 px-3 py-1.5 rounded-full"
@@ -901,6 +918,94 @@ export default function NoteEditPage() {
           </View>
         </Modal>
 
+        {/* Note Info Modal */}
+        <Modal
+          visible={noteInfoModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setNoteInfoModalVisible(false)}
+        >
+          <View className="flex-1 bg-black/50 justify-center items-center p-5">
+            <View className="bg-white rounded-2xl w-full max-w-[400px]">
+              {/* Header */}
+              <View className="flex-row items-center justify-between p-4 border-b border-gray-200">
+                <Text className="text-lg font-bold text-foreground">笔记信息</Text>
+                <TouchableOpacity onPress={() => setNoteInfoModalVisible(false)}>
+                  <FontAwesome6 name="xmark" size={20} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+
+              <View className="p-4">
+                {/* Author */}
+                <View className="flex-row items-center mb-3">
+                  <FontAwesome6 name="user" size={14} color="#6B7280" />
+                  <Text className="text-sm text-gray-600 ml-2">作者：</Text>
+                  <Text className="text-sm text-foreground font-medium ml-1">
+                    {noteAuthor ? (collaborators.length > 0 ? `${noteAuthor} 等` : noteAuthor) : '匿名用户'}
+                  </Text>
+                </View>
+
+                {/* Collaborators */}
+                <View className="flex-row items-center mb-3">
+                  <FontAwesome6 name="user-group" size={14} color="#6B7280" />
+                  <Text className="text-sm text-gray-600 ml-2">协作者：</Text>
+                  <Text className="text-sm text-foreground ml-1">
+                    {collaborators.length > 0 ? collaborators.map(c => c.user_name).join('、') : '无'}
+                  </Text>
+                </View>
+
+                {/* Created Time */}
+                <View className="flex-row items-center mb-3">
+                  <FontAwesome6 name="calendar-plus" size={14} color="#6B7280" />
+                  <Text className="text-sm text-gray-600 ml-2">创建时间：</Text>
+                  <Text className="text-sm text-foreground ml-1">
+                    {noteCreatedAt ? new Date(noteCreatedAt).toLocaleString('zh-CN') : '未知'}
+                  </Text>
+                </View>
+
+                {/* Updated Time */}
+                <View className="flex-row items-center mb-3">
+                  <FontAwesome6 name="calendar-check" size={14} color="#6B7280" />
+                  <Text className="text-sm text-gray-600 ml-2">修改时间：</Text>
+                  <Text className="text-sm text-foreground ml-1">
+                    {noteUpdatedAt ? new Date(noteUpdatedAt).toLocaleString('zh-CN') : '未知'}
+                  </Text>
+                </View>
+
+                {/* Word Count */}
+                <View className="flex-row items-center mb-3">
+                  <FontAwesome6 name="font" size={14} color="#6B7280" />
+                  <Text className="text-sm text-gray-600 ml-2">字数：</Text>
+                  <Text className="text-sm text-foreground ml-1">{content.length}</Text>
+                </View>
+
+                {/* Labels */}
+                <View className="flex-row items-start">
+                  <FontAwesome6 name="tags" size={14} color="#6B7280" />
+                  <Text className="text-sm text-gray-600 ml-2">标签：</Text>
+                  <View className="flex-row flex-wrap flex-1 ml-1">
+                    {labels.filter(l => l !== null).length > 0 ? (
+                      labels.filter(l => l !== null).map((labelId, index) => (
+                        <View
+                          key={index}
+                          className="flex-row items-center mr-2 mb-1 px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: LABEL_COLORS[labelId as number] + '20' }}
+                        >
+                          <Text className="text-xs" style={{ color: LABEL_COLORS[labelId as number] }}>
+                            {LABELS[labelId as number]}
+                          </Text>
+                        </View>
+                      ))
+                    ) : (
+                      <Text className="text-sm text-foreground">无</Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
         {/* Collaborator Management Modal */}
         <Modal
           visible={collaboratorModalVisible}
@@ -912,7 +1017,7 @@ export default function NoteEditPage() {
             <View className="bg-white rounded-2xl w-full max-h-[70%]">
               {/* Header */}
               <View className="flex-row items-center justify-between p-4 border-b border-gray-200">
-                <Text className="text-lg font-bold text-foreground">协作者管理</Text>
+                <Text className="text-lg font-bold text-foreground">{isAuthor ? '协作者管理' : '协作者列表'}</Text>
                 <TouchableOpacity onPress={() => setCollaboratorModalVisible(false)}>
                   <FontAwesome6 name="xmark" size={20} color="#6B7280" />
                 </TouchableOpacity>
@@ -933,63 +1038,69 @@ export default function NoteEditPage() {
                           </View>
                           <Text className="text-sm text-foreground flex-1">{collab.user_name}</Text>
                         </View>
-                        <TouchableOpacity
-                          onPress={() => handleRemoveCollaborator(collab.user_id, collab.user_name)}
-                          className="px-3 py-1 rounded-full bg-red-100"
-                        >
-                          <Text className="text-xs text-red-500">移除</Text>
-                        </TouchableOpacity>
+                        {isAuthor && (
+                          <TouchableOpacity
+                            onPress={() => handleRemoveCollaborator(collab.user_id, collab.user_name)}
+                            className="px-3 py-1 rounded-full bg-red-100"
+                          >
+                            <Text className="text-xs text-red-500">移除</Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
                     ))}
                   </View>
                 )}
 
-                {/* Search and Add */}
-                <Text className="text-sm font-medium text-gray-600 mb-2">添加协作者</Text>
-                <View className="flex-row items-center bg-gray-100 rounded-xl px-3 py-2 mb-2">
-                  <FontAwesome6 name="magnifyingGlass" size={14} color="#9CA3AF" />
-                  <TextInput
-                    className="flex-1 ml-2 text-sm text-foreground"
-                    placeholder="搜索用户昵称..."
-                    placeholderTextColor="#9CA3AF"
-                    value={searchQuery}
-                    onChangeText={(text) => {
-                      setSearchQuery(text);
-                      handleSearchUsers(text);
-                    }}
-                    style={{ outline: 'none' }}
-                  />
-                </View>
-
-                {searching && (
-                  <View className="py-2 items-center">
-                    <ActivityIndicator size="small" color="#4F46E5" />
-                  </View>
-                )}
-
-                {!searching && searchQuery && searchResults.length === 0 && (
-                  <Text className="text-sm text-gray-400 text-center py-2">未找到用户</Text>
-                )}
-
-                {searchResults.map((user) => (
-                  <View key={user.user_id} className="flex-row items-center justify-between py-2 border-b border-gray-100">
-                    <View className="flex-row items-center flex-1">
-                      <View className="w-8 h-8 rounded-full bg-green-100 items-center justify-center mr-2">
-                        <FontAwesome6 name="user-plus" size={14} color="#10B981" />
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-sm text-foreground">{user.user_name}</Text>
-                        <Text className="text-xs text-gray-400">ID: {user.user_id}</Text>
-                      </View>
+                {/* Search and Add - Only for author */}
+                {isAuthor && (
+                  <>
+                    <Text className="text-sm font-medium text-gray-600 mb-2">添加协作者</Text>
+                    <View className="flex-row items-center bg-gray-100 rounded-xl px-3 py-2 mb-2">
+                      <FontAwesome6 name="users" size={14} color="#9CA3AF" />
+                      <TextInput
+                        className="flex-1 ml-2 text-sm text-foreground"
+                        placeholder="搜索用户昵称..."
+                        placeholderTextColor="#9CA3AF"
+                        value={searchQuery}
+                        onChangeText={(text) => {
+                          setSearchQuery(text);
+                          handleSearchUsers(text);
+                        }}
+                        style={{ outline: 'none' }}
+                      />
                     </View>
-                    <TouchableOpacity
-                      onPress={() => handleAddCollaborator(user.user_id, user.user_name)}
-                      className="px-3 py-1 rounded-full bg-indigo-500"
-                    >
-                      <Text className="text-xs text-white">添加</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
+
+                    {searching && (
+                      <View className="py-2 items-center">
+                        <ActivityIndicator size="small" color="#4F46E5" />
+                      </View>
+                    )}
+
+                    {!searching && searchQuery && searchResults.length === 0 && (
+                      <Text className="text-sm text-gray-400 text-center py-2">未找到用户</Text>
+                    )}
+
+                    {searchResults.map((user) => (
+                      <View key={user.user_id} className="flex-row items-center justify-between py-2 border-b border-gray-100">
+                        <View className="flex-row items-center flex-1">
+                          <View className="w-8 h-8 rounded-full bg-green-100 items-center justify-center mr-2">
+                            <FontAwesome6 name="user-plus" size={14} color="#10B981" />
+                          </View>
+                          <View className="flex-1">
+                            <Text className="text-sm text-foreground">{user.user_name}</Text>
+                            <Text className="text-xs text-gray-400">ID: {user.user_id}</Text>
+                          </View>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => handleAddCollaborator(user.user_id, user.user_name)}
+                          className="px-3 py-1 rounded-full bg-indigo-500"
+                        >
+                          <Text className="text-xs text-white">添加</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </>
+                )}
               </ScrollView>
             </View>
           </View>
