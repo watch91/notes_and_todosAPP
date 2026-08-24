@@ -1,57 +1,48 @@
 import express from 'express';
-import { LLMClient, Config } from 'coze-coding-dev-sdk';
+import type { Request, Response } from 'express';
+import { ASRClient, Config, HeaderUtils } from 'coze-coding-dev-sdk';
 
 const router = express.Router();
 
-// POST /api/v1/voice/transcribe - 语音转文字
-router.post('/transcribe', async (req, res) => {
+/**
+ * POST /api/v1/voice/transcribe
+ * 语音识别 - 将录音转换为文字
+ * Body: { audioBase64: string, format: 'webm' | 'm4a' }
+ */
+router.post('/transcribe', async (req: Request, res: Response) => {
   try {
-    const { audio, format = 'm4a' } = req.body;
+    const { audioBase64, format = 'm4a' } = req.body;
 
-    if (!audio) {
-      return res.status(400).json({ success: false, error: 'audio is required' });
+    if (!audioBase64) {
+      return res.status(400).json({
+        success: false,
+        error: '缺少音频数据'
+      });
     }
 
+    // 使用 ASRClient 进行语音识别
+    const customHeaders = HeaderUtils.extractForwardHeaders(req.headers as Record<string, string>);
     const config = new Config();
-    const client = new LLMClient(config);
+    const asrClient = new ASRClient(config, customHeaders);
 
-    // 根据格式设置正确的 MIME type
-    const mimeType = format === 'webm' ? 'audio/webm' : 'audio/m4a';
-
-    // 使用支持音频的模型进行语音识别
-    const messages: any[] = [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: '请将以下音频内容转录为文字。只需要输出转录的文字内容，不需要任何额外说明。如果音频中没有可识别的语音内容，请输出"无内容"。',
-          },
-          {
-            type: 'audio_url',
-            audio_url: {
-              url: `data:${mimeType};base64,${audio}`,
-            },
-          },
-        ],
-      },
-    ];
-
-    const response = await client.invoke(messages, {
-      model: 'doubao-seed-2-0-pro-260215',
-      temperature: 0.1,
+    const result = await asrClient.recognize({
+      uid: 'voice-record-user',
+      base64Data: audioBase64
     });
 
-    const text = response.content.trim();
+    console.log('ASR 识别结果:', result.text);
 
-    if (text === '无内容' || text === '') {
-      return res.json({ success: false, error: '无法识别语音内容' });
-    }
-
-    res.json({ success: true, text });
+    res.json({
+      success: true,
+      text: result.text || '',
+      duration: result.duration
+    });
   } catch (error) {
-    console.error('Voice transcribe error:', error);
-    res.status(500).json({ success: false, error: '语音识别失败' });
+    console.error('语音识别失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : '语音识别失败'
+    });
   }
 });
 
