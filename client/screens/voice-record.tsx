@@ -118,8 +118,10 @@ export default function VoiceRecordScreen() {
 
       if (Platform.OS === 'web') {
         // Web 端使用 fetch 获取文件
+        console.log('Web 端录音 URI:', uri);
         const response = await fetch(uri);
         const blob = await response.blob();
+        console.log('Web 端 blob size:', blob.size);
         // 转换为 base64
         base64Data = await new Promise((resolve, reject) => {
           const reader = new FileReader();
