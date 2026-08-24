@@ -79,6 +79,7 @@ export default function HomePage() {
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<HomeItem | null>(null);
   const [deleteConfirmStep, setDeleteConfirmStep] = useState<'first' | 'second' | 'input' | null>(null);
   const [deleteInputTitle, setDeleteInputTitle] = useState('');
+  const [showLoginWarning, setShowLoginWarning] = useState(false);
 
   const checkAgreement = async () => {
     try {
@@ -103,6 +104,29 @@ export default function HomePage() {
   const handleDisagree = () => {
     // 不同意则退出应用或限制使用
     Linking.openURL('https://www.baidu.com');
+  };
+
+  // 处理新建笔记点击
+  const handleCreateNote = async () => {
+    setModalVisible(false);
+    const userId = await AsyncStorage.getItem('user_id');
+    if (!userId) {
+      setShowLoginWarning(true);
+    } else {
+      router.push('/note-edit', {});
+    }
+  };
+
+  // 处理去登录
+  const handleGoToLogin = () => {
+    setShowLoginWarning(false);
+    router.push('/login', {});
+  };
+
+  // 处理继续匿名使用
+  const handleContinueAnonymous = () => {
+    setShowLoginWarning(false);
+    router.push('/note-edit', {});
   };
 
   // 检查是否需要显示协议
@@ -548,10 +572,7 @@ export default function HomePage() {
               <Text className="text-lg font-bold text-foreground mb-4">新建内容</Text>
               <View className="flex-row gap-3">
                 <TouchableOpacity
-                  onPress={() => {
-                    setModalVisible(false);
-                    router.push('/note-edit', {});
-                  }}
+                  onPress={handleCreateNote}
                   className="flex-1 bg-indigo-50 rounded-2xl p-5 items-center"
                 >
                   <View className="w-12 h-12 rounded-xl bg-indigo-500 items-center justify-center mb-3">
@@ -719,6 +740,34 @@ export default function HomePage() {
                   onPress={handleAgree}
                 >
                   <Text className="text-center text-white font-medium">同意并继续</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* 未登录提示弹窗 */}
+        <Modal visible={showLoginWarning} transparent animationType="fade">
+          <View className="flex-1 bg-black/60 items-center justify-center p-6">
+            <View className="bg-white rounded-2xl p-6 w-full max-w-sm">
+              <Text className="text-lg font-bold text-center text-foreground mb-4">
+                提示
+              </Text>
+              <Text className="text-center text-muted mb-6">
+                您当前暂未登录账号，数据极易丢失、被篡改。建议您登录账号后使用。
+              </Text>
+              <View className="flex-row gap-3">
+                <TouchableOpacity
+                  className="flex-1 bg-gray-200 rounded-xl py-3"
+                  onPress={handleContinueAnonymous}
+                >
+                  <Text className="text-center text-gray-600 font-medium text-sm">无视风险，继续匿名使用</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className="flex-1 bg-indigo-500 rounded-xl py-3"
+                  onPress={handleGoToLogin}
+                >
+                  <Text className="text-center text-white font-medium">去登录</Text>
                 </TouchableOpacity>
               </View>
             </View>
