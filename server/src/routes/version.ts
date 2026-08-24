@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getSupabaseClient } from '../storage/database/supabase-client.js';
+import { broadcastUpdate } from '../websocket.js';
 
 const router = Router();
 
@@ -46,6 +47,18 @@ router.post('/', async (req, res) => {
     if (version_suffix !== undefined) {
       await client.from('app_config').upsert({ key: 'version_suffix', value: version_suffix });
     }
+    
+    // 广播版本更新消息给所有连接的客户端
+    broadcastUpdate({
+      type: 'version_update',
+      payload: {
+        new_version,
+        download_url,
+        Version_beta_testing,
+        beta_version_download_URL,
+        version_suffix
+      }
+    });
     
     res.json({ success: true });
   } catch (error: any) {

@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import { createServer } from "http";
 import notesRouter from "./routes/notes.js";
 import todosRouter from "./routes/todos.js";
 import versionRouter from "./routes/version.js";
@@ -11,9 +12,14 @@ import picturesRouter from "./routes/pictures.js";
 import authRouter from "./routes/auth.js";
 import voiceRouter from "./routes/voice.js";
 import { startDailyNotesTask } from "./tasks/daily-notes.js";
+import { setupWebSocket } from "./websocket.js";
 
 const app = express();
 const port = process.env.PORT || 9091;
+const server = createServer(app);
+
+// 设置 WebSocket 服务
+setupWebSocket(server);
 
 // Middleware
 app.use(cors());
@@ -38,7 +44,8 @@ app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/voice', voiceRouter);
 app.use('/api/public', publicApiRouter);
 
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}/`);
+  console.log(`WebSocket server listening at ws://localhost:${port}/ws/updates`);
   startDailyNotesTask();
 });
