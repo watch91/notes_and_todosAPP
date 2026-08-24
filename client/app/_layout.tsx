@@ -40,6 +40,7 @@ export default function RootLayout() {
         <Stack.Screen name="settings" />
         <Stack.Screen name="agreement" />
         <Stack.Screen name="starry-wisdom" />
+        <Stack.Screen name="voice-record" />
       </Stack>
       <Toast />
     </Provider>
