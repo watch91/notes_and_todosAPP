@@ -1,6 +1,6 @@
 import { Audio } from 'expo-av';
 import { useRef, useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, ActivityIndicator, Platform } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
@@ -114,10 +114,30 @@ export default function VoiceRecordScreen() {
   const processRecording = async (uri: string) => {
     setIsProcessing(true);
     try {
-      // 读取文件为 base64
-      const base64Data = await (FileSystem as any).readAsStringAsync(uri, {
-        encoding: (FileSystem as any).EncodingType.Base64,
-      });
+      let base64Data: string;
+
+      if (Platform.OS === 'web') {
+        // Web 端使用 fetch 获取文件
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        // 转换为 base64
+        base64Data = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const result = reader.result as string;
+            // 移除 data:audio/xxx;base64, 前缀
+            const base64 = result.split(',')[1];
+            resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } else {
+        // 移动端使用 expo-file-system
+        base64Data = await (FileSystem as any).readAsStringAsync(uri, {
+          encoding: (FileSystem as any).EncodingType.Base64,
+        });
+      }
 
       // 上传到后端进行语音识别
       const response = await fetch(`${EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/voice/transcribe`, {
