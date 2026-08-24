@@ -129,9 +129,13 @@ export default function VoiceRecordScreen() {
             const result = reader.result as string;
             // 移除 data:audio/xxx;base64, 前缀
             const base64 = result.split(',')[1];
+            console.log('Web 端 base64 length:', base64?.length);
             resolve(base64);
           };
-          reader.onerror = reject;
+          reader.onerror = (e) => {
+            console.error('Web 端 FileReader error:', e);
+            reject(e);
+          };
           reader.readAsDataURL(blob);
         });
       } else {
@@ -142,21 +146,26 @@ export default function VoiceRecordScreen() {
       }
 
       // 上传到后端进行语音识别
+      console.log('开始上传录音到后端...');
       const response = await fetch(`${EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/voice/transcribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ audio: base64Data }),
       });
 
+      console.log('后端响应状态:', response.status);
       const result = await response.json();
+      console.log('后端响应内容:', result);
 
       if (result.success && result.text) {
+        console.log('识别成功，准备跳转...');
         // 跳转到新建笔记页面，预填入识别的内容
         router.replace('/note-edit', {
           content: result.text,
           title: '听音速记',
         });
       } else {
+        console.log('识别失败:', result.error);
         Alert.alert('识别失败', result.error || '无法识别语音内容');
         setIsProcessing(false);
       }
