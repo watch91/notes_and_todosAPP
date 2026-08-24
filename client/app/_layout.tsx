@@ -4,7 +4,6 @@ import { LogBox } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { Provider } from '@/components/Provider';
 import { useAutoUpdate } from '@/hooks/useAutoUpdate';
-import { useWebSocketUpdates } from '@/hooks/useWebSocketUpdates';
 import { logger } from '@/utils/logger';
 
 import '../global.css';
@@ -15,7 +14,6 @@ LogBox.ignoreLogs([
 
 function UpdateChecker() {
   useAutoUpdate();
-  useWebSocketUpdates(); // 连接 WebSocket，接收实时更新推送
   return null;
 }
 
