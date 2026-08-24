@@ -10,7 +10,7 @@ import { logger } from '@/utils/logger';
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
 // 屏蔽关键词
-const BLOCK_KEYWORDS = ['更新公告', 'test'];
+const BLOCK_KEYWORDS = ['更新公告', 'test','公告'];
 
 // 标签对应关系（按照 assets/标签对应关系.txt）
 const LABELS: Record<number, string> = {

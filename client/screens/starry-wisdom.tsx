@@ -77,7 +77,7 @@ export default function StarryWisdomScreen() {
           messages: [
             {
               role: 'user',
-              content: '请生成一句简短的、治愈的哲理金句或座右铭，要求：1.不超过30字 2.温暖治愈 3.富有哲理 4.只输出句子本身，不要任何解释。',
+              content: '请生成一句简短的、治愈的哲理金句或座右铭，要求：1.不超过40字 2.温暖治愈 3.富有哲理 4.只输出句子本身，不要任何解释。',
             },
           ],
           model: 'doubao-seed-2-0-mini-260215',
