@@ -210,7 +210,12 @@ export default function VoiceRecordScreen() {
           <TouchableOpacity onPress={cancelRecording}>
             <FontAwesome6 name="arrow-left" size={24} color="#1F2937" />
           </TouchableOpacity>
-          <Text className="text-xl font-bold text-foreground">听音速记</Text>
+          <View className="flex-row items-center">
+            <Text className="text-xl font-bold text-foreground">听音速记</Text>
+            <View className="ml-2 px-1.5 py-0.5 bg-purple-500 rounded">
+              <Text className="text-[10px] text-white font-bold">Beta</Text>
+            </View>
+          </View>
           <View className="w-6" />
         </View>
 

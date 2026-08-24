@@ -583,7 +583,12 @@ export default function HomePage() {
                   <View className="w-12 h-12 rounded-xl bg-purple-500 items-center justify-center mb-3">
                     <FontAwesome6 name="microphone" size={20} color="white" />
                   </View>
-                  <Text className="font-medium text-foreground">听音速记</Text>
+                  <View className="flex-row items-center">
+                    <Text className="font-medium text-foreground">听音速记</Text>
+                    <View className="ml-2 px-1.5 py-0.5 bg-purple-500 rounded">
+                      <Text className="text-[10px] text-white font-bold">Beta</Text>
+                    </View>
+                  </View>
                   <Text className="text-xs text-muted mt-1">语音转文字</Text>
                 </TouchableOpacity>
               </View>
