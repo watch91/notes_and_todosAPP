@@ -150,7 +150,10 @@ export default function VoiceRecordScreen() {
       const response = await fetch(`${EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/voice/transcribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ audio: base64Data }),
+        body: JSON.stringify({ 
+          audio: base64Data,
+          format: Platform.OS === 'web' ? 'webm' : 'm4a'
+        }),
       });
 
       console.log('后端响应状态:', response.status);

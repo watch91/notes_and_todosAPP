@@ -6,7 +6,7 @@ const router = express.Router();
 // POST /api/v1/voice/transcribe - 语音转文字
 router.post('/transcribe', async (req, res) => {
   try {
-    const { audio } = req.body;
+    const { audio, format = 'm4a' } = req.body;
 
     if (!audio) {
       return res.status(400).json({ success: false, error: 'audio is required' });
@@ -14,6 +14,9 @@ router.post('/transcribe', async (req, res) => {
 
     const config = new Config();
     const client = new LLMClient(config);
+
+    // 根据格式设置正确的 MIME type
+    const mimeType = format === 'webm' ? 'audio/webm' : 'audio/m4a';
 
     // 使用支持音频的模型进行语音识别
     const messages: any[] = [
@@ -27,7 +30,7 @@ router.post('/transcribe', async (req, res) => {
           {
             type: 'audio_url',
             audio_url: {
-              url: `data:audio/m4a;base64,${audio}`,
+              url: `data:${mimeType};base64,${audio}`,
             },
           },
         ],
