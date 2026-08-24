@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
-import { Alert, Linking, Platform } from 'react-native';
+import { Alert, Linking } from 'react-native';
 import { APP_VERSION } from '@/utils/version';
-import { initNotificationService, sendUpdateNotification, requestNotificationPermission } from '@/utils/notifications';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
@@ -18,27 +17,28 @@ const compareVersions = (a: string, b: string): boolean => {
 };
 
 // 检查正式版更新
-const checkStableUpdate = async (data: { new_version?: string; download_url?: string; version_suffix?: string }) => {
+const checkStableUpdate = (data: { new_version?: string; download_url?: string; version_suffix?: string }) => {
   if (data.new_version && compareVersions(APP_VERSION, data.new_version)) {
     const versionDisplay = data.version_suffix 
       ? `v${data.new_version} ${data.version_suffix}`
       : `v${data.new_version}`;
-    
-    // 发送本地通知
-    await sendUpdateNotification(versionDisplay, data.download_url);
+    Alert.alert(
+      '发现新版本',
+      `当前版本 ${APP_VERSION}，最新版本 ${versionDisplay}，是否立即更新？`,
+      [
+        { text: '稍后', style: 'cancel' },
+        { text: '立即更新', onPress: () => {
+          if (data.download_url) {
+            Linking.openURL(data.download_url);
+          }
+        }}
+      ]
+    );
   }
 };
 
 export function useAutoUpdate() {
   useEffect(() => {
-    const init = async () => {
-      // 初始化通知服务
-      await initNotificationService();
-      // 请求通知权限
-      await requestNotificationPermission();
-    };
-    init();
-
     const checkVersion = async () => {
       try {
         const res = await fetch(`${API_BASE}/api/v1/version`);
@@ -46,7 +46,6 @@ export function useAutoUpdate() {
         
         // 先检查 Beta 版本更新
         if (data.Version_beta_testing && compareVersions(APP_VERSION, data.Version_beta_testing)) {
-          // Beta 版本更新仍然使用弹窗，因为需要用户选择
           Alert.alert(
             '有可用的内测版更新',
             `有可用的内测版更新：v${data.Version_beta_testing}，是否更新？\n\n注：使用内测版本可以优先使用最新功能，但软件稳定性无法保证`,
@@ -71,7 +70,7 @@ export function useAutoUpdate() {
           );
         } else {
           // 没有 Beta 版本更新，检查正式版更新
-          await checkStableUpdate(data);
+          checkStableUpdate(data);
         }
       } catch (e) {
         // 静默处理
