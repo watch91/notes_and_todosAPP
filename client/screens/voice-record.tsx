@@ -151,7 +151,7 @@ export default function VoiceRecordScreen() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          audio: base64Data,
+          audioBase64: base64Data,
           format: Platform.OS === 'web' ? 'webm' : 'm4a'
         }),
       });
