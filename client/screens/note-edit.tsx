@@ -614,6 +614,15 @@ export default function NoteEditPage() {
           </Text>
           {isReadOnly && isEditing ? (
             <View className="flex-row items-center">
+              {content.trim() && (
+                <TouchableOpacity
+                  onPress={handleAISummarize}
+                  className="flex-row items-center px-3 py-2 mr-2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/30"
+                >
+                  <FontAwesome6 name="wand-magic-sparkles" size={14} color="#FFFFFF" />
+                  <Text className="text-xs text-white ml-1.5 font-medium">AI 总结</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 onPress={() => setNoteInfoModalVisible(true)}
                 className="flex-row items-center px-3 py-2 mr-2 rounded-full bg-gray-100"
@@ -630,14 +639,6 @@ export default function NoteEditPage() {
             </View>
           ) : (
             <>
-              {content.trim() && (
-                <TouchableOpacity
-                  onPress={handleAISummarize}
-                  className="p-2 -mr-2"
-                >
-                  <FontAwesome6 name="wand-magic-sparkles" size={18} color="#4F46E5" /><Text className="text-xs text-indigo-600 ml-1">一键总结</Text>
-                </TouchableOpacity>
-              )}
               {isEditing && (
                 <TouchableOpacity
                   onPress={handleOpenCollaboratorModal}
