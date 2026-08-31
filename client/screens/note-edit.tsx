@@ -617,10 +617,15 @@ export default function NoteEditPage() {
               {content.trim() && (
                 <TouchableOpacity
                   onPress={handleAISummarize}
-                  className="flex-row items-center px-3 py-2 mr-2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/30"
+                  className="flex-row items-center px-3 py-2 mr-2 rounded-full bg-white"
+                  style={{
+                    borderWidth: 2,
+                    borderColor: '#C084FC',
+                    boxShadow: '0 2px 8px rgba(192, 132, 252, 0.3)',
+                  }}
                 >
-                  <FontAwesome6 name="wand-magic-sparkles" size={14} color="#FFFFFF" />
-                  <Text className="text-xs text-white ml-1.5 font-medium">AI 总结</Text>
+                  <FontAwesome6 name="wand-magic-sparkles" size={14} color="#8B5CF6" />
+                  <Text className="text-xs text-purple-600 ml-1.5 font-medium">AI 总结</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
