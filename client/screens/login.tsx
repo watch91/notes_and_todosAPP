@@ -1,12 +1,20 @@
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, Switch } from 'react-native';
 import { useState } from 'react';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '@/utils/logger';
+import { encrypt, decrypt } from '@/utils/crypto';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
+const ACCOUNTS_STORAGE_KEY = 'aiostation_accounts';
+
+interface SavedAccount {
+  userId: string;
+  userName: string;
+  encryptedPassword: string;
+}
 
 export default function LoginPage() {
   const router = useSafeRouter();
@@ -16,6 +24,7 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [registeredInfo, setRegisteredInfo] = useState<{ userId: string; userName: string; password: string } | null>(null);
+  const [rememberAccount, setRememberAccount] = useState(false);
 
   const handleLogin = async () => {
     if (!userName.trim() || !password) {
@@ -42,6 +51,12 @@ export default function LoginPage() {
         // 保存用户信息
         await AsyncStorage.setItem('user_id', data.data.user_id);
         await AsyncStorage.setItem('user_name', data.data.user_name);
+
+        // 如果勾选记住账号，保存到本地
+        if (rememberAccount) {
+          await saveAccount(data.data.user_id, data.data.user_name, password);
+        }
+
         logger.info('登录', `用户 ${data.data.user_name} 登录成功`);
         Alert.alert('登录成功', `欢迎回来，${data.data.user_name}！`);
         router.replace('/settings');
@@ -111,9 +126,37 @@ export default function LoginPage() {
       // 保存用户信息
       await AsyncStorage.setItem('user_id', registeredInfo.userId);
       await AsyncStorage.setItem('user_name', registeredInfo.userName);
+
+      // 如果勾选记住账号，保存到本地
+      if (rememberAccount) {
+        await saveAccount(registeredInfo.userId, registeredInfo.userName, registeredInfo.password);
+      }
+
       logger.info('注册', `用户 ${registeredInfo.userName} 已登录`);
       Alert.alert('注册成功', `欢迎，${registeredInfo.userName}！`);
       router.replace('/settings');
+    }
+  };
+
+  const saveAccount = async (userId: string, userName: string, password: string) => {
+    try {
+      const encryptedPassword = encrypt(password);
+      const account: SavedAccount = { userId, userName, encryptedPassword };
+      const existingAccounts = await AsyncStorage.getItem(ACCOUNTS_STORAGE_KEY);
+      const accounts: SavedAccount[] = existingAccounts ? JSON.parse(existingAccounts) : [];
+
+      // 检查是否已存在该账号，如果存在则更新，否则新增
+      const index = accounts.findIndex(a => a.userId === userId);
+      if (index >= 0) {
+        accounts[index] = account;
+      } else {
+        accounts.push(account);
+      }
+
+      await AsyncStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(accounts));
+      logger.info('记住账号', `已保存账号 ${userName}`);
+    } catch (e) {
+      logger.error('记住账号', e instanceof Error ? e : new Error(String(e)));
     }
   };
 
@@ -275,6 +318,20 @@ export default function LoginPage() {
                     autoCapitalize="none"
                   />
                 </View>
+              </View>
+            )}
+
+            {/* 保存账号密码（仅登录模式） */}
+            {mode === 'login' && (
+              <View className="flex-row items-center mt-2">
+                <TouchableOpacity
+                  onPress={() => setRememberAccount(!rememberAccount)}
+                  className="w-5 h-5 rounded border-2 items-center justify-center mr-3"
+                  style={{ borderColor: rememberAccount ? '#4F46E5' : '#9CA3AF' }}
+                >
+                  {rememberAccount && <FontAwesome6 name="check" size={12} color="#4F46E5" />}
+                </TouchableOpacity>
+                <Text className="text-sm text-muted">保存账号密码（下次快捷登录）</Text>
               </View>
             )}
           </View>

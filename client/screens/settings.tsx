@@ -136,6 +136,19 @@ export default function SettingsPage() {
                   </View>
                 </View>
                 <TouchableOpacity
+                  onPress={() => router.push('/account-switch')}
+                  className="flex-row items-center px-5 py-4 border-b border-gray-100"
+                >
+                  <View className="w-10 h-10 rounded-xl bg-blue-50 items-center justify-center">
+                    <FontAwesome6 name="users" size={16} color="#3B82F6" />
+                  </View>
+                  <View className="flex-1 ml-3">
+                    <Text className="font-medium text-foreground">切换账号</Text>
+                    <Text className="text-xs text-muted mt-0.5">从缓存账号中选择登录</Text>
+                  </View>
+                  <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
+                </TouchableOpacity>
+                <TouchableOpacity
                   onPress={handleLogout}
                   className="flex-row items-center px-5 py-4"
                 >
