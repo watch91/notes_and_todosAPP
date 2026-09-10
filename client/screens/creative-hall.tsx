@@ -465,8 +465,8 @@ const AnotherYouPlayer = () => {
 
 export default function CreativeHallScreen() {
   const router = useSafeRouter();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const fadeAnim = useRef(new Animated.Value(0));
+  const scaleAnim = useRef(new Animated.Value(0.9));
   const [showPlayer, setShowPlayer] = useState(false);
   const [showDiamondPlayer, setShowDiamondPlayer] = useState(false);
   const [showAnotherYouPlayer, setShowAnotherYouPlayer] = useState(false);
@@ -490,12 +490,12 @@ export default function CreativeHallScreen() {
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, {
+      Animated.timing(fadeAnim.current, {
         toValue: 1,
         duration: 800,
         useNativeDriver: true,
       }),
-      Animated.spring(scaleAnim, {
+      Animated.spring(scaleAnim.current, {
         toValue: 1,
         tension: 50,
         friction: 7,
@@ -524,9 +524,11 @@ export default function CreativeHallScreen() {
         <DecorativeStar style={{ top: 650, right: 40 }} size={3} opacity={0.4} />
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
+          {/* eslint-disable react-hooks/refs */}
+          <Animated.View style={[styles.header, { opacity: fadeAnim.current, transform: [{ scale: scaleAnim.current }] }]}>
+          {/* eslint-enable react-hooks/refs */}
             <View style={styles.titleGlow} />
-            <Text style={styles.title}>✨ 创意大厅 ✨</Text>
+            <Text style={styles.title}>创意大厅</Text>
             <Text style={styles.subtitle}>探索更多有趣的功能</Text>
           </Animated.View>
 

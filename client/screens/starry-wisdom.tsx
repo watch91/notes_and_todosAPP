@@ -242,7 +242,7 @@ export default function StarryWisdomScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                <Text style={styles.saveTodoButtonText}>📝 保存到待办</Text>
+                <Text style={styles.saveTodoButtonText}>保存到待办</Text>
               </TouchableOpacity>
               <Text style={styles.footerText}>明日再来，聆听新的星语</Text>
             </>

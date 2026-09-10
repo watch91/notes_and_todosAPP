@@ -24,7 +24,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         "backgroundColor": "#ffffff"
       },
       "package": `com.anonymous.x${projectId || '0'}`,
-      "softwareKeyboardLayoutMode": "adjustResize",
+      // @ts-ignore — used for development HTTP traffic
       "usesCleartextTraffic": true
     },
     "web": {
@@ -33,12 +33,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      process.env.EXPO_PUBLIC_BACKEND_BASE_URL ? [
+      [
         "expo-router",
-        {
-          "origin": process.env.EXPO_PUBLIC_BACKEND_BASE_URL
-        }
-      ] : 'expo-router',
+        process.env.EXPO_PUBLIC_BACKEND_BASE_URL
+          ? { "origin": process.env.EXPO_PUBLIC_BACKEND_BASE_URL }
+          : {}
+      ],
       [
         "expo-splash-screen",
         {

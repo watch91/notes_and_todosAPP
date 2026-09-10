@@ -3,6 +3,26 @@ import { getSupabaseClient } from '../storage/database/supabase-client.js';
 
 const router = Router();
 
+// 辅助函数：将时间字段规范化为带 UTC 时区的 ISO 格式
+function normalizeTimestamps<T extends Record<string, any>>(item: T): T {
+  if (item && typeof item === 'object') {
+    const result = { ...item };
+    if (result.created_at) {
+      result.created_at = new Date(result.created_at).toISOString();
+    }
+    if (result.updated_at) {
+      result.updated_at = new Date(result.updated_at).toISOString();
+    }
+    return result;
+  }
+  return item;
+}
+
+function normalizeNotesTimestamps(data: any[] | null | undefined): any[] | null {
+  if (!data) return data;
+  return data.map(item => normalizeTimestamps(item));
+}
+
 // 搜索笔记（按标题模糊搜索）
 router.get('/search', async (req, res) => {
   try {
@@ -10,7 +30,7 @@ router.get('/search', async (req, res) => {
     const client = getSupabaseClient();
     const { data, error } = await client.from('notes').select('*').ilike('title', `%${q}%`).order('updated_at', { ascending: false });
     if (error) throw new Error(`搜索失败: ${error.message}`);
-    res.json({ success: true, data });
+    res.json({ success: true, data: normalizeNotesTimestamps(data) });
   } catch (error: any) {
     console.error('Error searching notes:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -39,7 +59,7 @@ router.get('/', async (req, res) => {
     }
     
     // 添加创建者昵称和协作者数量到笔记数据
-    const notesWithAuthor = data?.map(note => {
+    const notesWithAuthor = normalizeNotesTimestamps(data)?.map(note => {
       let collaboratorCount = 0;
       try {
         const collabIds = JSON.parse(note.collaborators || '[]');
@@ -94,7 +114,7 @@ router.get('/:id', async (req, res) => {
       author_name = authorData?.user_name || null;
     }
     
-    res.json({ success: true, data: { ...data, collaborators, author_name } });
+    res.json({ success: true, data: normalizeTimestamps({ ...data, collaborators, author_name }) });
   } catch (error: any) {
     console.error('Error fetching note:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -119,7 +139,7 @@ router.post('/', async (req, res) => {
     
     const { data, error } = await client.from('notes').insert(insertData).select();
     if (error) throw new Error(`插入失败: ${error.message}`);
-    res.status(201).json({ success: true, data });
+    res.status(201).json({ success: true, data: normalizeNotesTimestamps(data) });
   } catch (error: any) {
     console.error('Error creating note:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -145,7 +165,7 @@ router.put('/:id', async (req, res) => {
     if (!data || data.length === 0) {
       return res.status(404).json({ success: false, error: 'Note not found' });
     }
-    res.json({ success: true, data: data[0] });
+    res.json({ success: true, data: normalizeNotesTimestamps(data)?.[0] });
   } catch (error: any) {
     console.error('Error updating note:', error);
     res.status(500).json({ success: false, error: error.message });
