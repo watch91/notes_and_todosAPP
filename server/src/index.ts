@@ -10,6 +10,7 @@ import llmRouter from "./routes/llm.js";
 import picturesRouter from "./routes/pictures.js";
 import authRouter from "./routes/auth.js";
 import voiceRouter from "./routes/voice.js";
+import aiRouter from "./routes/ai.js";
 import { startDailyNotesTask } from "./tasks/daily-notes.js";
 
 const app = express();
@@ -36,6 +37,7 @@ app.use('/api/v1/llm', llmRouter);
 app.use('/api/v1/pictures', picturesRouter);
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/voice', voiceRouter);
+app.use('/api/v1/notes/ai-assistant', aiRouter);
 app.use('/api/public', publicApiRouter);
 
 app.listen(port, () => {

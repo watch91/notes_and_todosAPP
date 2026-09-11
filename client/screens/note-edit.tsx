@@ -74,6 +74,10 @@ export default function NoteEditPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState('');
   const [aiModalVisible, setAiModalVisible] = useState(false);
+  const [aiInstruction, setAiInstruction] = useState('');
+  const [aiStreamText, setAiStreamText] = useState('');
+  const [aiAssistantLoading, setAiAssistantLoading] = useState(false);
+  const [aiAssistantVisible, setAiAssistantVisible] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -268,6 +272,130 @@ export default function NoteEditPage() {
     } finally {
       setAiLoading(false);
     }
+  };
+
+  // 打开 AI 写作助手弹窗
+  const handleOpenAiAssistant = () => {
+    setAiInstruction('');
+    setAiStreamText('');
+    setAiAssistantVisible(true);
+  };
+
+  // 关闭 AI 写作助手弹窗
+  const handleCloseAiAssistant = () => {
+    if (aiAssistantLoading) return;
+    setAiAssistantVisible(false);
+    setAiInstruction('');
+    setAiStreamText('');
+  };
+
+  // 从 LLM 输出中提取 {output:"..."} 中的完整内容
+  const extractOutputFromText = (text: string): string => {
+    // 1) 尝试 JSON 解析
+    try {
+      const obj = JSON.parse(text);
+      if (obj && typeof obj.output === 'string') return obj.output;
+    } catch {
+      // ignore
+    }
+    // 2) 去除 markdown 代码块再试一次
+    const trimmed = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+    try {
+      const obj = JSON.parse(trimmed);
+      if (obj && typeof obj.output === 'string') return obj.output;
+    } catch {
+      // ignore
+    }
+    // 3) 正则提取
+    const match = text.match(/\{\s*output\s*:\s*"([\s\S]*?)"\s*\}/);
+    if (match) {
+      try {
+        return JSON.parse(`"${match[1]}"`);
+      } catch {
+        return match[1]
+          .replace(/\\n/g, '\n')
+          .replace(/\\t/g, '\t')
+          .replace(/\\"/g, '"')
+          .replace(/\\\\/g, '\\');
+      }
+    }
+    // 4) 兜底：返回原文
+    return text;
+  };
+
+  // 发送指令，流式获取 AI 输出
+  const handleSendAiInstruction = async () => {
+    const instruction = aiInstruction.trim();
+    if (!instruction) {
+      Alert.alert('提示', '请输入你的写作需求');
+      return;
+    }
+    setAiAssistantLoading(true);
+    setAiStreamText('');
+    const ctrl = new AbortController();
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/notes/ai-assistant/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentContent: content || '', userInstruction: instruction }),
+        signal: ctrl.signal,
+      });
+      if (!res.ok || !res.body) {
+        throw new Error(`请求失败: ${res.status}`);
+      }
+      const reader = (res.body as any).getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+      let done = false;
+      while (!done) {
+        const result = await reader.read();
+        done = result.done;
+        if (result.value) {
+          buffer += decoder.decode(result.value, { stream: true });
+          // 按 \n\n 切分事件
+          let idx;
+          while ((idx = buffer.indexOf('\n\n')) !== -1) {
+            const rawEvent = buffer.slice(0, idx);
+            buffer = buffer.slice(idx + 2);
+            const line = rawEvent.replace(/^data:\s*/, '').trim();
+            if (!line) continue;
+            if (line === '[DONE]') {
+              done = true;
+              break;
+            }
+            if (line.startsWith('__END__')) {
+              const parsed = line.slice('__END__'.length);
+              setAiStreamText(parsed);
+            } else if (line.startsWith('__ERROR__')) {
+              setAiStreamText((prev) => prev + `\n[错误] ${line.slice('__ERROR__'.length)}`);
+            } else {
+              setAiStreamText((prev) => prev + line);
+            }
+          }
+        }
+      }
+      // 兜底解析
+      setAiStreamText((prev) => extractOutputFromText(prev));
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        Alert.alert('错误', err?.message || 'AI 请求失败');
+      }
+    } finally {
+      setAiAssistantLoading(false);
+    }
+  };
+
+  // 把 AI 输出应用到笔记
+  const handleApplyAiResult = () => {
+    const text = extractOutputFromText(aiStreamText);
+    if (!text) {
+      Alert.alert('提示', '暂无内容可应用');
+      return;
+    }
+    setContent(text);
+    setAiAssistantVisible(false);
+    setAiInstruction('');
+    setAiStreamText('');
   };
 
   // 标签选择相关函数
@@ -653,6 +781,19 @@ export default function NoteEditPage() {
                   <Text className="text-xs text-indigo-600 ml-1">协作者({collaborators.length})</Text>
                 </TouchableOpacity>
               )}
+              <TouchableOpacity
+                onPress={handleOpenAiAssistant}
+                disabled={aiAssistantLoading}
+                className="flex-row items-center px-3 py-2 mr-2 rounded-full bg-purple-100"
+                style={{
+                  borderWidth: 2,
+                  borderColor: '#C084FC',
+                  opacity: aiAssistantLoading ? 0.6 : 1,
+                }}
+              >
+                <FontAwesome6 name="wand-magic-sparkles" size={14} color="#8B5CF6" />
+                <Text className="text-xs text-purple-600 ml-1 font-medium">AI 写作助手</Text>
+              </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSave}
                 disabled={loading || !title.trim()}
@@ -1126,6 +1267,114 @@ export default function NoteEditPage() {
                   </>
                 )}
               </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* AI 写作助手弹窗 */}
+        <Modal visible={aiAssistantVisible} transparent animationType="slide" onRequestClose={handleCloseAiAssistant}>
+          <View className="flex-1 bg-black/50 justify-end">
+            <View className="bg-white rounded-t-3xl w-full" style={{ maxHeight: '88%' }}>
+              {/* Header */}
+              <View className="flex-row items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
+                <View className="flex-row items-center">
+                  <View className="w-8 h-8 rounded-full bg-purple-100 items-center justify-center mr-2">
+                    <FontAwesome6 name="wand-magic-sparkles" size={14} color="#8B5CF6" />
+                  </View>
+                  <Text className="text-lg font-bold text-foreground">AI 写作助手</Text>
+                </View>
+                <TouchableOpacity onPress={handleCloseAiAssistant} disabled={aiAssistantLoading} className="p-2">
+                  <FontAwesome6 name="xmark" size={18} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+
+              {/* 提示语 */}
+              <View className="px-5 pt-4 pb-2">
+                <View className="bg-purple-50 rounded-2xl px-4 py-3">
+                  <Text className="text-sm text-purple-700 font-medium">撰写？修改？润色？由你决定</Text>
+                  <Text className="text-xs text-purple-500 mt-1">基于当前笔记内容，告诉我你的需求，AI 会流式输出修改后的完整文章</Text>
+                </View>
+              </View>
+
+              {/* 输入区 + 发送按钮 */}
+              <View className="px-5 pt-2 pb-3">
+                <View
+                  className="bg-gray-100 rounded-2xl px-3 py-2 flex-row items-end"
+                  style={{ minHeight: 56 }}
+                >
+                  <TextInput
+                    value={aiInstruction}
+                    onChangeText={setAiInstruction}
+                    placeholder="例如：把第三段润色得更生动；帮我续写一段结尾…"
+                    placeholderTextColor="#9CA3AF"
+                    multiline
+                    className="flex-1 text-sm text-foreground max-h-32"
+                    style={{ outline: 'none', minHeight: 40 }}
+                    editable={!aiAssistantLoading}
+                  />
+                  <TouchableOpacity
+                    onPress={handleSendAiInstruction}
+                    disabled={aiAssistantLoading || !aiInstruction.trim()}
+                    className="ml-2 mb-1 px-3 py-2 rounded-full"
+                    style={{
+                      backgroundColor: aiAssistantLoading || !aiInstruction.trim() ? '#C4B5FD' : '#8B5CF6',
+                    }}
+                  >
+                    {aiAssistantLoading ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <FontAwesome6 name="paper-plane" size={14} color="#FFFFFF" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* 结果展示区 */}
+              <View className="px-5 pb-3 flex-1">
+                <View
+                  className="bg-white rounded-2xl border border-gray-200 px-4 py-3"
+                  style={{ minHeight: 180, maxHeight: 320 }}
+                >
+                  {aiAssistantLoading && !aiStreamText ? (
+                    <View className="flex-1 items-center justify-center">
+                      <ActivityIndicator size="small" color="#8B5CF6" />
+                      <Text className="text-xs text-gray-400 mt-2">AI 正在思考…</Text>
+                    </View>
+                  ) : aiStreamText ? (
+                    <ScrollView showsVerticalScrollIndicator>
+                      <Text className="text-sm text-foreground leading-6" selectable>
+                        {aiStreamText}
+                      </Text>
+                    </ScrollView>
+                  ) : (
+                    <View className="flex-1 items-center justify-center">
+                      <FontAwesome6 name="feather-pointed" size={22} color="#D1D5DB" />
+                      <Text className="text-xs text-gray-400 mt-2">AI 修改后的内容将显示在这里</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              {/* 底部按钮 */}
+              <View className="flex-row px-5 pt-2 pb-6 border-t border-gray-100">
+                <TouchableOpacity
+                  onPress={handleCloseAiAssistant}
+                  disabled={aiAssistantLoading}
+                  className="flex-1 mr-2 py-3 rounded-full bg-gray-100 items-center"
+                >
+                  <Text className="text-sm font-medium text-gray-700">取消</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleApplyAiResult}
+                  disabled={aiAssistantLoading || !aiStreamText.trim()}
+                  className="flex-1 ml-2 py-3 rounded-full items-center"
+                  style={{
+                    backgroundColor: aiAssistantLoading || !aiStreamText.trim() ? '#C4B5FD' : '#8B5CF6',
+                  }}
+                >
+                  <Text className="text-sm font-medium text-white">应用到笔记</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>
