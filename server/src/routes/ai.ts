@@ -5,7 +5,7 @@ const router = Router();
 
 // 构建写作助手 Prompt
 function buildWriterPrompt(currentContent: string, userInstruction: string): string {
-  return `你是一个写作助手，请严格遵守用户的指令，用户目前已写的内容是'${currentContent}'，用户的指令是'${userInstruction}'，你的回答应严格按照以下格式：{output:"你修改或写好后的文章完整全文"}不要有任何多余内容`;
+  return `你是一个写作助手，请严格遵守用户的指令，用户目前已写的内容是'${currentContent}'，用户的指令是'${userInstruction}'，你的回答应严格按照以下格式：{output:"你修改或写好后的文章完整全文，注意合理的分段"}不要有任何多余内容`;
 }
 
 // 从 LLM 输出中提取 {output:"..."} 中的内容
