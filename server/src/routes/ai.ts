@@ -1,7 +1,11 @@
 import { Router } from 'express';
 import { LLMClient, Config } from 'coze-coding-dev-sdk';
+import { getSupabaseClient } from '../storage/database/supabase-client.js';
 
 const router = Router();
+
+// AI 写作助手固定账号 ID
+export const AI_ASSISTANT_USER_ID = '20260509';
 
 // 构建写作助手 Prompt
 function buildWriterPrompt(currentContent: string, userInstruction: string): string {
@@ -114,6 +118,71 @@ router.post('/stream', async (req, res) => {
     } catch {
       // ignore
     }
+  }
+});
+
+// 把 AI 写作助手固定账号加入笔记协作者
+// POST /api/v1/notes/ai-assistant/mark
+// Body: { noteId: string | number }
+router.post('/mark', async (req, res) => {
+  try {
+    const { noteId } = req.body || {};
+    if (noteId === undefined || noteId === null || noteId === '') {
+      res.status(400).json({ success: false, error: 'noteId is required' });
+      return;
+    }
+
+    const client = getSupabaseClient();
+    const { data: note, error: noteError } = await client
+      .from('notes')
+      .select('id, user, collaborators')
+      .eq('id', noteId)
+      .maybeSingle();
+
+    if (noteError) {
+      res.status(500).json({ success: false, error: `查询笔记失败: ${noteError.message}` });
+      return;
+    }
+    if (!note) {
+      res.status(404).json({ success: false, error: 'Note not found' });
+      return;
+    }
+
+    // 解析现有协作者
+    let collaboratorIds: string[] = [];
+    try {
+      collaboratorIds = JSON.parse(note.collaborators || '[]');
+    } catch {
+      collaboratorIds = [];
+    }
+
+    // 已是协作者：幂等返回
+    if (collaboratorIds.includes(AI_ASSISTANT_USER_ID)) {
+      res.json({ success: true, data: { alreadyAdded: true } });
+      return;
+    }
+
+    // 不能将 AI 账号添加为笔记作者
+    if (note.user === AI_ASSISTANT_USER_ID) {
+      res.status(400).json({ success: false, error: 'AI 账号已成为作者，无需重复加入协作者' });
+      return;
+    }
+
+    collaboratorIds.push(AI_ASSISTANT_USER_ID);
+    const { error: updateError } = await client
+      .from('notes')
+      .update({ collaborators: JSON.stringify(collaboratorIds) })
+      .eq('id', noteId);
+
+    if (updateError) {
+      res.status(500).json({ success: false, error: `更新失败: ${updateError.message}` });
+      return;
+    }
+
+    res.json({ success: true, data: { alreadyAdded: false, collaboratorCount: collaboratorIds.length } });
+  } catch (error: any) {
+    console.error('[AI-Assistant] mark error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

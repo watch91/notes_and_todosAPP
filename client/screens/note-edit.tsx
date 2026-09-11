@@ -392,10 +392,60 @@ export default function NoteEditPage() {
       Alert.alert('提示', '暂无内容可应用');
       return;
     }
-    setContent(text);
-    setAiAssistantVisible(false);
-    setAiInstruction('');
-    setAiStreamText('');
+
+    // 检查 AI 写作助手固定账号是否已在协作者中
+    const AI_USER_ID = '20260509';
+    const isAiInCollaborators = collaborators.some(c => c.user_id === AI_USER_ID);
+
+    const applyContent = async (): Promise<void> => {
+      setContent(text);
+      setAiAssistantVisible(false);
+      setAiInstruction('');
+      setAiStreamText('');
+    };
+
+    const doApply = async () => {
+      try {
+        if (!isAiInCollaborators) {
+          // 服务端文件：server/src/routes/ai.ts
+          // 接口：POST /api/v1/notes/ai-assistant/mark
+          // Body 参数：noteId: string | number
+          const res = await fetch(`${API_BASE}/api/v1/notes/ai-assistant/mark`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ noteId: params.id }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            Alert.alert('错误', data.error || `添加 AI 协作者失败 (${res.status})`);
+            return;
+          }
+          // 同步本地协作者列表
+          setCollaborators((prev) => {
+            if (prev.some(c => c.user_id === AI_USER_ID)) return prev;
+            return [...prev, { user_id: AI_USER_ID, user_name: 'AI写作助手' }];
+          });
+        }
+        await applyContent();
+      } catch (err: any) {
+        Alert.alert('错误', err?.message || '应用失败');
+      }
+    };
+
+    if (isAiInCollaborators) {
+      // 已添加，直接应用
+      applyContent();
+    } else {
+      // 需弹窗提示
+      Alert.alert(
+        '公开 AI 使用声明',
+        '使用AI写作助手后将公开声明本文的AI使用情况，是否继续？（操作不可逆）',
+        [
+          { text: '取消', style: 'cancel' },
+          { text: '继续', onPress: () => { doApply(); } },
+        ]
+      );
+    }
   };
 
   // 标签选择相关函数
