@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Screen } from '@/components/Screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
+import { apiBase } from '@/utils';
 
 interface StarWisdomCache {
   quote: string;
@@ -70,7 +71,7 @@ export default function StarryWisdomScreen() {
   // 调用AI生成星语
   const fetchStarWisdom = async (): Promise<string> => {
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/llm/chat`, {
+      const response = await fetch(`${apiBase}/api/v1/llm/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

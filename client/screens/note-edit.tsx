@@ -6,9 +6,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { logger } from '@/utils/logger';
-import { createFormDataFile } from '@/utils';
+import { apiBase, createFormDataFile } from '@/utils';
 
-const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
+const API_BASE = apiBase;
 const DEEPSEEK_API_KEY = 'sk-5034bff7138d409dbf94f94c1be9440e';
 
 // 标签对应关系（按照 assets/标签对应关系.txt）

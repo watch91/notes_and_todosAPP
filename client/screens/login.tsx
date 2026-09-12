@@ -6,8 +6,9 @@ import { useSafeRouter } from '@/hooks/useSafeRouter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '@/utils/logger';
 import { encrypt, decrypt } from '@/utils/crypto';
+import { apiBase } from '@/utils';
 
-const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
+const API_BASE = apiBase;
 const ACCOUNTS_STORAGE_KEY = 'aiostation_accounts';
 
 interface SavedAccount {
