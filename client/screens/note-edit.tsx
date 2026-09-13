@@ -96,6 +96,8 @@ export default function NoteEditPage() {
   }, []);
   // 弹窗最大高度：用像素值（Android 不支持 maxHeight 百分比），键盘弹出时再缩减
   const aiSheetMaxHeight = Math.max(280, winH * 0.88 - aiKbHeight);
+  // 结果展示区固定高度（不随流式内容伸缩），保证弹窗整体高度恒定、消除抽搐
+  const aiResultHeight = Math.max(200, Math.min(320, Math.round(winH * 0.32)));
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -1410,11 +1412,11 @@ export default function NoteEditPage() {
                 </View>
               </View>
 
-              {/* 结果展示区 */}
+              {/* 结果展示区 - 固定高度，ScrollView 内部滚动，避免流式输出时弹窗整体抖动 */}
               <View className="px-5 pb-3" style={{ flexShrink: 1 }}>
                 <View
                   className="bg-white rounded-2xl border border-gray-200 px-4 py-3"
-                  style={{ minHeight: 120, maxHeight: 260 }}
+                  style={{ height: aiResultHeight }}
                 >
                   {aiAssistantLoading && !aiStreamText ? (
                     <View className="flex-1 items-center justify-center">
