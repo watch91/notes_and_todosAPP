@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, Alert, Image, Linking } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, Alert, Image, Linking, useWindowDimensions, Keyboard } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome6 } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -78,6 +79,18 @@ export default function NoteEditPage() {
   const [aiStreamText, setAiStreamText] = useState('');
   const [aiAssistantLoading, setAiAssistantLoading] = useState(false);
   const [aiAssistantVisible, setAiAssistantVisible] = useState(false);
+  const insets = useSafeAreaInsets();
+  const { height: winH } = useWindowDimensions();
+  const [aiKbHeight, setAiKbHeight] = useState(0);
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const sub1 = Keyboard.addListener(showEvt, (e) => setAiKbHeight(e.endCoordinates?.height ?? 0));
+    const sub2 = Keyboard.addListener(hideEvt, () => setAiKbHeight(0));
+    return () => { sub1.remove(); sub2.remove(); };
+  }, []);
+  // 弹窗最大高度：用像素值（Android 不支持 maxHeight 百分比），键盘弹出时再缩减
+  const aiSheetMaxHeight = Math.max(280, winH * 0.88 - aiKbHeight);
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -1323,8 +1336,15 @@ export default function NoteEditPage() {
 
         {/* AI 写作助手弹窗 */}
         <Modal visible={aiAssistantVisible} transparent animationType="slide" onRequestClose={handleCloseAiAssistant}>
-          <View className="flex-1 bg-black/50 justify-end">
-            <View className="bg-white rounded-t-3xl w-full" style={{ maxHeight: '88%' }}>
+          <KeyboardAvoidingView
+            className="flex-1 bg-black/50 justify-end"
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ paddingBottom: aiKbHeight > 0 ? aiKbHeight : insets.bottom }}
+          >
+            <View
+              className="bg-white rounded-t-3xl w-full"
+              style={{ maxHeight: aiSheetMaxHeight }}
+            >
               {/* Header */}
               <View className="flex-row items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
                 <View className="flex-row items-center">
@@ -1380,10 +1400,10 @@ export default function NoteEditPage() {
               </View>
 
               {/* 结果展示区 */}
-              <View className="px-5 pb-3 flex-1">
+              <View className="px-5 pb-3" style={{ flexShrink: 1 }}>
                 <View
                   className="bg-white rounded-2xl border border-gray-200 px-4 py-3"
-                  style={{ minHeight: 180, maxHeight: 320 }}
+                  style={{ minHeight: 120, maxHeight: 260 }}
                 >
                   {aiAssistantLoading && !aiStreamText ? (
                     <View className="flex-1 items-center justify-center">
@@ -1391,7 +1411,11 @@ export default function NoteEditPage() {
                       <Text className="text-xs text-gray-400 mt-2">AI 正在思考…</Text>
                     </View>
                   ) : aiStreamText ? (
-                    <ScrollView showsVerticalScrollIndicator>
+                    <ScrollView
+                      style={{ flex: 1 }}
+                      showsVerticalScrollIndicator
+                      nestedScrollEnabled
+                    >
                       <Text className="text-sm text-foreground leading-6" selectable>
                         {aiStreamText}
                       </Text>
@@ -1406,7 +1430,10 @@ export default function NoteEditPage() {
               </View>
 
               {/* 底部按钮 */}
-              <View className="flex-row px-5 pt-2 pb-6 border-t border-gray-100">
+              <View
+                className="flex-row px-5 pt-2 border-t border-gray-100"
+                style={{ paddingBottom: 12 + insets.bottom }}
+              >
                 <TouchableOpacity
                   onPress={handleCloseAiAssistant}
                   disabled={aiAssistantLoading}
@@ -1426,7 +1453,7 @@ export default function NoteEditPage() {
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </Modal>
       </KeyboardAvoidingView>
     </Screen>
