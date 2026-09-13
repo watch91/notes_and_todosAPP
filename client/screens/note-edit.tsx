@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, Alert, Image, Linking, useWindowDimensions, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import EventSource from 'react-native-sse';
 import { FontAwesome6 } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -82,6 +83,10 @@ export default function NoteEditPage() {
   const insets = useSafeAreaInsets();
   const { height: winH } = useWindowDimensions();
   const [aiKbHeight, setAiKbHeight] = useState(0);
+  // 用于持有当前 SSE 连接，方便取消/关闭弹窗时清理
+  const aiSseRef = useRef<EventSource | null>(null);
+  // 标记是否因收到 [DONE] 而主动关闭，避免库在正常关闭后触发 error 事件被误报
+  const aiSseClosedByDoneRef = useRef(false);
   useEffect(() => {
     const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
@@ -297,10 +302,21 @@ export default function NoteEditPage() {
   // 关闭 AI 写作助手弹窗
   const handleCloseAiAssistant = () => {
     if (aiAssistantLoading) return;
+    // 关闭可能仍在进行的 SSE 连接
+    aiSseRef.current?.close();
+    aiSseRef.current = null;
     setAiAssistantVisible(false);
     setAiInstruction('');
     setAiStreamText('');
   };
+
+  // 卸载时关闭 SSE 连接
+  useEffect(() => {
+    return () => {
+      aiSseRef.current?.close();
+      aiSseRef.current = null;
+    };
+  }, []);
 
   // 从 LLM 输出中提取 {output:"..."} 中的完整内容
   const extractOutputFromText = (text: string): string => {
@@ -336,66 +352,61 @@ export default function NoteEditPage() {
     return text;
   };
 
-  // 发送指令，流式获取 AI 输出
-  const handleSendAiInstruction = async () => {
+  // 发送指令，流式获取 AI 输出（使用 react-native-sse，RN 环境下 fetch 的 ReadableStream 在 Android 上行为异常）
+  const handleSendAiInstruction = () => {
     const instruction = aiInstruction.trim();
     if (!instruction) {
       Alert.alert('提示', '请输入你的写作需求');
       return;
     }
+    if (aiAssistantLoading) return;
+
+    // 关闭旧连接（如有）
+    aiSseRef.current?.close();
+    aiSseRef.current = null;
+    aiSseClosedByDoneRef.current = false;
+
     setAiAssistantLoading(true);
     setAiStreamText('');
-    const ctrl = new AbortController();
-    try {
-      const res = await fetch(`${API_BASE}/api/v1/notes/ai-assistant/stream`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentContent: content || '', userInstruction: instruction }),
-        signal: ctrl.signal,
-      });
-      if (!res.ok || !res.body) {
-        throw new Error(`请求失败: ${res.status}`);
+
+    const es = new EventSource(`${API_BASE}/api/v1/notes/ai-assistant/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentContent: content || '', userInstruction: instruction }),
+      pollingInterval: 0, // 禁用自动重连
+    });
+    aiSseRef.current = es;
+
+    es.addEventListener('message', (event: any) => {
+      const line: string = event?.data ?? '';
+      if (!line) return;
+      if (line === '[DONE]') {
+        aiSseClosedByDoneRef.current = true;
+        es.close();
+        aiSseRef.current = null;
+        setAiStreamText((prev) => extractOutputFromText(prev));
+        setAiAssistantLoading(false);
+        return;
       }
-      const reader = (res.body as any).getReader();
-      const decoder = new TextDecoder('utf-8');
-      let buffer = '';
-      let done = false;
-      while (!done) {
-        const result = await reader.read();
-        done = result.done;
-        if (result.value) {
-          buffer += decoder.decode(result.value, { stream: true });
-          // 按 \n\n 切分事件
-          let idx;
-          while ((idx = buffer.indexOf('\n\n')) !== -1) {
-            const rawEvent = buffer.slice(0, idx);
-            buffer = buffer.slice(idx + 2);
-            const line = rawEvent.replace(/^data:\s*/, '').trim();
-            if (!line) continue;
-            if (line === '[DONE]') {
-              done = true;
-              break;
-            }
-            if (line.startsWith('__END__')) {
-              const parsed = line.slice('__END__'.length);
-              setAiStreamText(parsed);
-            } else if (line.startsWith('__ERROR__')) {
-              setAiStreamText((prev) => prev + `\n[错误] ${line.slice('__ERROR__'.length)}`);
-            } else {
-              setAiStreamText((prev) => prev + line);
-            }
-          }
-        }
+      if (line.startsWith('__END__')) {
+        setAiStreamText(line.slice('__END__'.length));
+      } else if (line.startsWith('__ERROR__')) {
+        setAiStreamText((prev) => prev + `\n[错误] ${line.slice('__ERROR__'.length)}`);
+      } else {
+        setAiStreamText((prev) => prev + line);
       }
-      // 兜底解析
-      setAiStreamText((prev) => extractOutputFromText(prev));
-    } catch (err: any) {
-      if (err?.name !== 'AbortError') {
-        Alert.alert('错误', err?.message || 'AI 请求失败');
-      }
-    } finally {
+    });
+
+    es.addEventListener('error', (event: any) => {
+      // 正常 [DONE] 关闭后库可能仍触发 error，跳过
+      if (aiSseClosedByDoneRef.current) return;
+      const status = event?.status;
+      const message = event?.message || `请求失败: ${status ?? '网络错误'}`;
+      es.close();
+      aiSseRef.current = null;
       setAiAssistantLoading(false);
-    }
+      Alert.alert('错误', message);
+    });
   };
 
   // 把 AI 输出应用到笔记
