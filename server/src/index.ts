@@ -1,3 +1,4 @@
+import "./silence-report.js"; // 必须置于所有 import 最前：静音 SDK 埋点噪音日志
 import express from "express";
 import cors from "cors";
 import { existsSync } from "fs";
