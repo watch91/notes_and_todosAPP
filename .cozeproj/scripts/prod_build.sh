@@ -54,8 +54,7 @@ info "开始执行：pnpm run build:web (client)"
 if [ -f "$ROOT_DIR/client/package.json" ]; then
   # 生产环境：清空 EXPO_PUBLIC_BACKEND_BASE_URL，让前端走相对路径，
   # 这样 Web 端和 API 都在同一个端口（5000）上，由 Express 同时托管
-  EXPO_PUBLIC_BACKEND_BASE_URL="" \
-  (pushd "$ROOT_DIR/client" > /dev/null && pnpm run build:web; popd > /dev/null) || error "web 打包失败"
+  (cd "$ROOT_DIR/client" && EXPO_PUBLIC_BACKEND_BASE_URL="" pnpm run build:web) || error "web 打包失败"
   if [ -d "$ROOT_DIR/client/dist" ]; then
     info "client/dist 已生成"
   else
