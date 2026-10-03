@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, Alert, Image, Linking, useWindowDimensions, Keyboard } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, Alert, Image, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import EventSource from 'react-native-sse';
+import { useFocusEffect } from 'expo-router';
 import { FontAwesome6 } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -9,6 +9,7 @@ import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { logger } from '@/utils/logger';
 import { apiBase, createFormDataFile } from '@/utils';
+import { consumeAiAssistantResult } from '@/utils/ai-assistant-result';
 
 const API_BASE = apiBase;
 const DEEPSEEK_API_KEY = 'sk-5034bff7138d409dbf94f94c1be9440e';
@@ -76,28 +77,7 @@ export default function NoteEditPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState('');
   const [aiModalVisible, setAiModalVisible] = useState(false);
-  const [aiInstruction, setAiInstruction] = useState('');
-  const [aiStreamText, setAiStreamText] = useState('');
-  const [aiAssistantLoading, setAiAssistantLoading] = useState(false);
-  const [aiAssistantVisible, setAiAssistantVisible] = useState(false);
   const insets = useSafeAreaInsets();
-  const { height: winH } = useWindowDimensions();
-  const [aiKbHeight, setAiKbHeight] = useState(0);
-  // 用于持有当前 SSE 连接，方便取消/关闭弹窗时清理
-  const aiSseRef = useRef<EventSource | null>(null);
-  // 标记是否因收到 [DONE] 而主动关闭，避免库在正常关闭后触发 error 事件被误报
-  const aiSseClosedByDoneRef = useRef(false);
-  useEffect(() => {
-    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const sub1 = Keyboard.addListener(showEvt, (e) => setAiKbHeight(e.endCoordinates?.height ?? 0));
-    const sub2 = Keyboard.addListener(hideEvt, () => setAiKbHeight(0));
-    return () => { sub1.remove(); sub2.remove(); };
-  }, []);
-  // 弹窗最大高度：用像素值（Android 不支持 maxHeight 百分比），键盘弹出时再缩减
-  const aiSheetMaxHeight = Math.max(280, winH * 0.88 - aiKbHeight);
-  // 结果展示区固定高度（不随流式内容伸缩），保证弹窗整体高度恒定、消除抽搐
-  const aiResultHeight = Math.max(200, Math.min(320, Math.round(winH * 0.32)));
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -294,185 +274,64 @@ export default function NoteEditPage() {
     }
   };
 
-  // 打开 AI 写作助手弹窗
+  // 打开 AI 写作助手（独立页面）
   const handleOpenAiAssistant = () => {
-    setAiInstruction('');
-    setAiStreamText('');
-    setAiAssistantVisible(true);
+    router.push('/ai-assistant', { currentContent: content || '' });
   };
 
-  // 关闭 AI 写作助手弹窗
-  const handleCloseAiAssistant = () => {
-    if (aiAssistantLoading) return;
-    // 关闭可能仍在进行的 SSE 连接
-    aiSseRef.current?.close();
-    aiSseRef.current = null;
-    setAiAssistantVisible(false);
-    setAiInstruction('');
-    setAiStreamText('');
-  };
+  // 从 AI 助手页面返回时，检查是否有待应用的 AI 结果
+  useFocusEffect(
+    useCallback(() => {
+      const aiResult = consumeAiAssistantResult();
+      if (!aiResult) return;
 
-  // 卸载时关闭 SSE 连接
-  useEffect(() => {
-    return () => {
-      aiSseRef.current?.close();
-      aiSseRef.current = null;
-    };
-  }, []);
+      // 检查 AI 写作助手固定账号是否已在协作者中
+      const AI_USER_ID = '20260509';
+      const isAiInCollaborators = collaborators.some(c => c.user_id === AI_USER_ID);
 
-  // 从 LLM 输出中提取 {output:"..."} 中的完整内容
-  const extractOutputFromText = (text: string): string => {
-    // 1) 尝试 JSON 解析
-    try {
-      const obj = JSON.parse(text);
-      if (obj && typeof obj.output === 'string') return obj.output;
-    } catch {
-      // ignore
-    }
-    // 2) 去除 markdown 代码块再试一次
-    const trimmed = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
-    try {
-      const obj = JSON.parse(trimmed);
-      if (obj && typeof obj.output === 'string') return obj.output;
-    } catch {
-      // ignore
-    }
-    // 3) 正则提取
-    const match = text.match(/\{\s*output\s*:\s*"([\s\S]*?)"\s*\}/);
-    if (match) {
-      try {
-        return JSON.parse(`"${match[1]}"`);
-      } catch {
-        return match[1]
-          .replace(/\\n/g, '\n')
-          .replace(/\\t/g, '\t')
-          .replace(/\\"/g, '"')
-          .replace(/\\\\/g, '\\');
-      }
-    }
-    // 4) 兜底：返回原文
-    return text;
-  };
-
-  // 发送指令，流式获取 AI 输出（使用 react-native-sse，RN 环境下 fetch 的 ReadableStream 在 Android 上行为异常）
-  const handleSendAiInstruction = () => {
-    const instruction = aiInstruction.trim();
-    if (!instruction) {
-      Alert.alert('提示', '请输入你的写作需求');
-      return;
-    }
-    if (aiAssistantLoading) return;
-
-    // 关闭旧连接（如有）
-    aiSseRef.current?.close();
-    aiSseRef.current = null;
-    aiSseClosedByDoneRef.current = false;
-
-    setAiAssistantLoading(true);
-    setAiStreamText('');
-
-    const es = new EventSource(`${API_BASE}/api/v1/notes/ai-assistant/stream`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ currentContent: content || '', userInstruction: instruction }),
-      pollingInterval: 0, // 禁用自动重连
-    });
-    aiSseRef.current = es;
-
-    es.addEventListener('message', (event: any) => {
-      const line: string = event?.data ?? '';
-      if (!line) return;
-      if (line === '[DONE]') {
-        aiSseClosedByDoneRef.current = true;
-        es.close();
-        aiSseRef.current = null;
-        setAiStreamText((prev) => extractOutputFromText(prev));
-        setAiAssistantLoading(false);
-        return;
-      }
-      if (line.startsWith('__END__')) {
-        setAiStreamText(line.slice('__END__'.length));
-      } else if (line.startsWith('__ERROR__')) {
-        setAiStreamText((prev) => prev + `\n[错误] ${line.slice('__ERROR__'.length)}`);
-      } else {
-        setAiStreamText((prev) => prev + line);
-      }
-    });
-
-    es.addEventListener('error', (event: any) => {
-      // 正常 [DONE] 关闭后库可能仍触发 error，跳过
-      if (aiSseClosedByDoneRef.current) return;
-      const status = event?.status;
-      const message = event?.message || `请求失败: ${status ?? '网络错误'}`;
-      es.close();
-      aiSseRef.current = null;
-      setAiAssistantLoading(false);
-      Alert.alert('错误', message);
-    });
-  };
-
-  // 把 AI 输出应用到笔记
-  const handleApplyAiResult = () => {
-    const text = extractOutputFromText(aiStreamText);
-    if (!text) {
-      Alert.alert('提示', '暂无内容可应用');
-      return;
-    }
-
-    // 检查 AI 写作助手固定账号是否已在协作者中
-    const AI_USER_ID = '20260509';
-    const isAiInCollaborators = collaborators.some(c => c.user_id === AI_USER_ID);
-
-    const applyContent = async (): Promise<void> => {
-      setContent(text);
-      setAiAssistantVisible(false);
-      setAiInstruction('');
-      setAiStreamText('');
-    };
-
-    const doApply = async () => {
-      try {
-        if (!isAiInCollaborators) {
-          // 服务端文件：server/src/routes/ai.ts
-          // 接口：POST /api/v1/notes/ai-assistant/mark
-          // Body 参数：noteId: string | number
-          const res = await fetch(`${API_BASE}/api/v1/notes/ai-assistant/mark`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ noteId: params.id }),
-          });
-          const data = await res.json();
-          if (!res.ok || !data.success) {
-            Alert.alert('错误', data.error || `添加 AI 协作者失败 (${res.status})`);
-            return;
+      const doApply = async () => {
+        try {
+          if (!isAiInCollaborators) {
+            /**
+             * 服务端文件：server/src/routes/ai.ts
+             * 接口：POST /api/v1/notes/ai-assistant/mark
+             * Body 参数：noteId: string | number
+             */
+            const res = await fetch(`${API_BASE}/api/v1/notes/ai-assistant/mark`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ noteId: params.id }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+              Alert.alert('错误', data.error || `添加 AI 协作者失败 (${res.status})`);
+              return;
+            }
+            setCollaborators((prev) => {
+              if (prev.some(c => c.user_id === AI_USER_ID)) return prev;
+              return [...prev, { user_id: AI_USER_ID, user_name: 'AI写作助手' }];
+            });
           }
-          // 同步本地协作者列表
-          setCollaborators((prev) => {
-            if (prev.some(c => c.user_id === AI_USER_ID)) return prev;
-            return [...prev, { user_id: AI_USER_ID, user_name: 'AI写作助手' }];
-          });
+          setContent(aiResult);
+        } catch (err: any) {
+          Alert.alert('错误', err?.message || '应用失败');
         }
-        await applyContent();
-      } catch (err: any) {
-        Alert.alert('错误', err?.message || '应用失败');
-      }
-    };
+      };
 
-    if (isAiInCollaborators) {
-      // 已添加，直接应用
-      applyContent();
-    } else {
-      // 需弹窗提示
-      Alert.alert(
-        '公开 AI 使用声明',
-        '使用AI写作助手后将公开声明本文的AI使用情况，是否继续？（操作不可逆）',
-        [
-          { text: '取消', style: 'cancel' },
-          { text: '继续', onPress: () => { doApply(); } },
-        ]
-      );
-    }
-  };
+      if (isAiInCollaborators) {
+        setContent(aiResult);
+      } else {
+        Alert.alert(
+          '公开 AI 使用声明',
+          '使用AI写作助手后将公开声明本文的AI使用情况，是否继续？（操作不可逆）',
+          [
+            { text: '取消', style: 'cancel' },
+            { text: '继续', onPress: () => { doApply(); } },
+          ]
+        );
+      }
+    }, [collaborators])
+  );
 
   // 标签选择相关函数
   const handleSelectLabel = (labelId: number) => {
@@ -859,12 +718,10 @@ export default function NoteEditPage() {
               )}
               <TouchableOpacity
                 onPress={handleOpenAiAssistant}
-                disabled={aiAssistantLoading}
                 className="flex-row items-center px-3 py-2 mr-2 rounded-full bg-purple-100"
                 style={{
                   borderWidth: 2,
                   borderColor: '#C084FC',
-                  opacity: aiAssistantLoading ? 0.6 : 1,
                 }}
               >
                 <FontAwesome6 name="wand-magic-sparkles" size={14} color="#8B5CF6" />
@@ -1345,128 +1202,6 @@ export default function NoteEditPage() {
               </ScrollView>
             </View>
           </View>
-        </Modal>
-
-        {/* AI 写作助手弹窗 */}
-        <Modal visible={aiAssistantVisible} transparent animationType="slide" onRequestClose={handleCloseAiAssistant}>
-          <KeyboardAvoidingView
-            className="flex-1 bg-black/50 justify-end"
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={{ paddingBottom: aiKbHeight > 0 ? aiKbHeight : insets.bottom }}
-          >
-            <View
-              className="bg-white rounded-t-3xl w-full"
-              style={{ maxHeight: aiSheetMaxHeight }}
-            >
-              {/* Header */}
-              <View className="flex-row items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
-                <View className="flex-row items-center">
-                  <View className="w-8 h-8 rounded-full bg-purple-100 items-center justify-center mr-2">
-                    <FontAwesome6 name="wand-magic-sparkles" size={14} color="#8B5CF6" />
-                  </View>
-                  <Text className="text-lg font-bold text-foreground">AI 写作助手</Text>
-                </View>
-                <TouchableOpacity onPress={handleCloseAiAssistant} disabled={aiAssistantLoading} className="p-2">
-                  <FontAwesome6 name="xmark" size={18} color="#6B7280" />
-                </TouchableOpacity>
-              </View>
-
-              {/* 提示语 */}
-              <View className="px-5 pt-4 pb-2">
-                <View className="bg-purple-50 rounded-2xl px-4 py-3">
-                  <Text className="text-sm text-purple-700 font-medium">撰写？修改？润色？由你决定</Text>
-                  <Text className="text-xs text-purple-500 mt-1">基于当前笔记内容，告诉我你的需求，AI 会流式输出修改后的完整文章</Text>
-                </View>
-              </View>
-
-              {/* 输入区 + 发送按钮 */}
-              <View className="px-5 pt-2 pb-3">
-                <View
-                  className="bg-gray-100 rounded-2xl px-3 py-2 flex-row items-end"
-                  style={{ minHeight: 56 }}
-                >
-                  <TextInput
-                    value={aiInstruction}
-                    onChangeText={setAiInstruction}
-                    placeholder="例如：把第三段润色得更生动；帮我续写一段结尾…"
-                    placeholderTextColor="#9CA3AF"
-                    multiline
-                    className="flex-1 text-sm text-foreground max-h-32"
-                    style={{ outline: 'none', minHeight: 40 }}
-                    editable={!aiAssistantLoading}
-                  />
-                  <TouchableOpacity
-                    onPress={handleSendAiInstruction}
-                    disabled={aiAssistantLoading || !aiInstruction.trim()}
-                    className="ml-2 mb-1 px-3 py-2 rounded-full"
-                    style={{
-                      backgroundColor: aiAssistantLoading || !aiInstruction.trim() ? '#C4B5FD' : '#8B5CF6',
-                    }}
-                  >
-                    {aiAssistantLoading ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <FontAwesome6 name="paper-plane" size={14} color="#FFFFFF" />
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* 结果展示区 - 固定高度，ScrollView 内部滚动，避免流式输出时弹窗整体抖动 */}
-              <View className="px-5 pb-3" style={{ flexShrink: 1 }}>
-                <View
-                  className="bg-white rounded-2xl border border-gray-200 px-4 py-3"
-                  style={{ height: aiResultHeight }}
-                >
-                  {aiAssistantLoading && !aiStreamText ? (
-                    <View className="flex-1 items-center justify-center">
-                      <ActivityIndicator size="small" color="#8B5CF6" />
-                      <Text className="text-xs text-gray-400 mt-2">AI 正在思考…</Text>
-                    </View>
-                  ) : aiStreamText ? (
-                    <ScrollView
-                      style={{ flex: 1 }}
-                      showsVerticalScrollIndicator
-                      nestedScrollEnabled
-                    >
-                      <Text className="text-sm text-foreground leading-6" selectable>
-                        {aiStreamText}
-                      </Text>
-                    </ScrollView>
-                  ) : (
-                    <View className="flex-1 items-center justify-center">
-                      <FontAwesome6 name="feather-pointed" size={22} color="#D1D5DB" />
-                      <Text className="text-xs text-gray-400 mt-2">AI 修改后的内容将显示在这里</Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-
-              {/* 底部按钮 */}
-              <View
-                className="flex-row px-5 pt-2 border-t border-gray-100"
-                style={{ paddingBottom: 12 + insets.bottom }}
-              >
-                <TouchableOpacity
-                  onPress={handleCloseAiAssistant}
-                  disabled={aiAssistantLoading}
-                  className="flex-1 mr-2 py-3 rounded-full bg-gray-100 items-center"
-                >
-                  <Text className="text-sm font-medium text-gray-700">取消</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleApplyAiResult}
-                  disabled={aiAssistantLoading || !aiStreamText.trim()}
-                  className="flex-1 ml-2 py-3 rounded-full items-center"
-                  style={{
-                    backgroundColor: aiAssistantLoading || !aiStreamText.trim() ? '#C4B5FD' : '#8B5CF6',
-                  }}
-                >
-                  <Text className="text-sm font-medium text-white">应用到笔记</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </KeyboardAvoidingView>
         </Modal>
       </KeyboardAvoidingView>
     </Screen>

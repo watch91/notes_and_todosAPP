@@ -42,6 +42,7 @@ export default function RootLayout() {
         <Stack.Screen name="starry-wisdom" />
         <Stack.Screen name="voice-record" />
         <Stack.Screen name="account-switch" />
+        <Stack.Screen name="ai-assistant" />
       </Stack>
       <Toast />
     </Provider>
