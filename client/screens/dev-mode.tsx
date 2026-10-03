@@ -319,7 +319,7 @@ export default function DevModePage() {
                 {generating ? '生成中...' : '手动生成 AI 笔记'}
               </Text>
               <Text className="text-xs text-muted mt-0.5">
-                随机生成 2 篇 AI 笔记并写入笔记列表（替代原凌晨自动任务）
+                随机生成 2 篇 AI 笔记并写入笔记列表
               </Text>
             </View>
             {generating ? (
