@@ -4,8 +4,10 @@ import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import storage from '@/utils/secureStorage';
 import { logger } from '@/utils/logger';
 import { encrypt, decrypt } from '@/utils/crypto';
+import Toast from 'react-native-toast-message';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 const ACCOUNTS_STORAGE_KEY = 'aiostation_accounts';
@@ -142,7 +144,7 @@ export default function LoginPage() {
     try {
       const encryptedPassword = encrypt(password);
       const account: SavedAccount = { userId, userName, encryptedPassword };
-      const existingAccounts = await AsyncStorage.getItem(ACCOUNTS_STORAGE_KEY);
+      const existingAccounts = await storage.getItem(ACCOUNTS_STORAGE_KEY);
       const accounts: SavedAccount[] = existingAccounts ? JSON.parse(existingAccounts) : [];
 
       // 检查是否已存在该账号，如果存在则更新，否则新增
@@ -153,10 +155,25 @@ export default function LoginPage() {
         accounts.push(account);
       }
 
-      await AsyncStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(accounts));
+      await storage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(accounts));
       logger.info('记住账号', `已保存账号 ${userName}`);
+      // 鸿蒙NEXT 等部分平台存在 AsyncStorage 兼容性问题，
+      // 此处 Toast 提示用户当前使用的存储后端，便于排查
+      const backend = await storage.getActiveBackend();
+      if (backend === 'file-system') {
+        Toast.show({
+          type: 'info',
+          text1: '账号已保存（兼容模式）',
+          text2: '当前设备使用文件存储替代本地缓存',
+        });
+      }
     } catch (e) {
       logger.error('记住账号', e instanceof Error ? e : new Error(String(e)));
+      Toast.show({
+        type: 'error',
+        text1: '账号缓存失败',
+        text2: '请稍后再试或重启应用',
+      });
     }
   };
 

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { FontAwesome6 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import storage from '@/utils/secureStorage';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { decrypt } from '@/utils/crypto';
 import { Screen } from '@/components/Screen';
@@ -34,7 +35,8 @@ export default function AccountSwitchScreen() {
 
   const loadAccounts = async () => {
     try {
-      const raw = await AsyncStorage.getItem(ACCOUNTS_STORAGE_KEY);
+      // 使用统一存储适配层，兼容鸿蒙NEXT 等 AsyncStorage 不稳定的平台
+      const raw = await storage.getItem(ACCOUNTS_STORAGE_KEY);
       if (raw) {
         setAccounts(JSON.parse(raw) as SavedAccount[]);
       } else {
