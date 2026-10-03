@@ -1,6 +1,5 @@
-import cron from 'node-cron';
-import { getSupabaseClient } from '../storage/database/supabase-client.js';
 import { LLMClient, Config } from 'coze-coding-dev-sdk';
+import { getSupabaseClient } from '../storage/database/supabase-client.js';
 
 // 主题池，AI 会从中随机选择主题生成笔记
 const topicPool = [
@@ -104,43 +103,33 @@ async function generateNoteWithAI(topic: string): Promise<{ title: string; conte
   }
 }
 
-// 插入笔记到数据库
-async function insertDailyNotes() {
-  try {
-    const topics = pickRandomTopics(2);
-    console.log('[DailyNotes] 今日主题:', topics.join(', '));
+// 手动触发：生成并插入 2 条 AI 笔记
+// 由开发者模式手动触发，不再使用 cron 自动调度
+export async function triggerDailyNotes() {
+  const topics = pickRandomTopics(2);
+  console.log('[DailyNotes] 手动触发，今日主题:', topics.join(', '));
 
-    const notes: { title: string; content: string }[] = [];
+  const notes: { title: string; content: string }[] = [];
 
-    for (const topic of topics) {
-      const note = await generateNoteWithAI(topic);
-      if (note) {
-        notes.push(note);
-      }
+  for (const topic of topics) {
+    const note = await generateNoteWithAI(topic);
+    if (note) {
+      notes.push(note);
     }
-
-    if (notes.length === 0) {
-      console.log('[DailyNotes] 没有成功生成笔记');
-      return;
-    }
-
-    const client = getSupabaseClient();
-    const { data, error } = await client.from('notes').insert(notes).select();
-    if (error) {
-      console.error('[DailyNotes] 插入失败:', error.message);
-    } else {
-      console.log(`[DailyNotes] 成功插入 ${data.length} 条 AI 生成笔记`);
-    }
-  } catch (error: any) {
-    console.error('[DailyNotes] 异常:', error.message);
   }
-}
 
-// 启动定时任务：每天凌晨 0:05 执行
-export function startDailyNotesTask() {
-  cron.schedule('5 0 * * *', () => {
-    console.log('[DailyNotes] 开始执行每日笔记任务...');
-    insertDailyNotes();
-  });
-  console.log('[DailyNotes] 定时任务已启动，每天 00:05 自动生成并插入2条 AI 笔记');
+  if (notes.length === 0) {
+    console.log('[DailyNotes] 没有成功生成笔记');
+    return { success: false, inserted: 0, topics };
+  }
+
+  const client = getSupabaseClient();
+  const { data, error } = await client.from('notes').insert(notes).select();
+  if (error) {
+    console.error('[DailyNotes] 插入失败:', error.message);
+    return { success: false, inserted: 0, topics, error: error.message };
+  }
+
+  console.log(`[DailyNotes] 成功插入 ${data.length} 条 AI 生成笔记`);
+  return { success: true, inserted: data.length, topics };
 }

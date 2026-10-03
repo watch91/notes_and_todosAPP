@@ -19,6 +19,7 @@ export default function DevModePage() {
   const [modalType, setModalType] = useState<ConfigKey>('download_url');
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   const loadConfig = async (key: ConfigKey) => {
     try {
@@ -101,6 +102,46 @@ export default function DevModePage() {
         },
       },
     ]);
+  };
+
+  const handleGenerateDailyNotes = () => {
+    Alert.alert(
+      '确认',
+      '确定要手动生成 2 篇 AI 笔记吗？\n生成内容会立即写入笔记列表',
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '生成',
+          onPress: async () => {
+            setGenerating(true);
+            try {
+              /**
+               * 服务端文件：server/src/routes/daily-notes.ts
+               * 接口：POST /api/v1/daily-notes/trigger
+               * Body 参数：无
+               * 返回：{ success: boolean, inserted: number, topics: string[] }
+               */
+              const response = await fetch(`${EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/daily-notes/trigger`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+              });
+              const data = await response.json();
+              if (response.ok && data.success) {
+                Alert.alert('成功', `已生成 ${data.inserted} 篇 AI 笔记\n主题：${(data.topics || []).join('、')}`);
+                logger.info('dev-mode', `手动生成 AI 笔记 ${data.inserted} 篇: ${(data.topics || []).join('、')}`);
+              } else {
+                Alert.alert('失败', data.error || '生成失败，请查看日志');
+                logger.error('dev-mode', `生成 AI 笔记失败: ${data.error || 'unknown'}`);
+              }
+            } catch (error) {
+              Alert.alert('错误', '网络请求失败');
+              logger.error('dev-mode', `手动生成 AI 笔记异常: ${error}`);
+            }
+            setGenerating(false);
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -252,6 +293,40 @@ export default function DevModePage() {
               <Text className="text-xs text-muted mt-0.5">清除后可重新生成今日星语</Text>
             </View>
             <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
+          </TouchableOpacity>
+        </View>
+
+        {/* AI 数据工具 */}
+        <View className="mx-5 mt-4 bg-white rounded-2xl overflow-hidden shadow-sm"
+          style={{
+            shadowColor: '#4F46E5',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 8,
+            elevation: 2,
+          }}
+        >
+          <TouchableOpacity
+            onPress={handleGenerateDailyNotes}
+            disabled={generating}
+            className="flex-row items-center px-5 py-4"
+          >
+            <View className="w-10 h-10 rounded-xl bg-indigo-50 items-center justify-center">
+              <FontAwesome6 name="wand-magic-sparkles" size={16} color="#6366F1" />
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="font-medium text-foreground">
+                {generating ? '生成中...' : '手动生成 AI 笔记'}
+              </Text>
+              <Text className="text-xs text-muted mt-0.5">
+                随机生成 2 篇 AI 笔记并写入笔记列表（替代原凌晨自动任务）
+              </Text>
+            </View>
+            {generating ? (
+              <FontAwesome6 name="spinner" size={14} color="#6366F1" />
+            ) : (
+              <FontAwesome6 name="chevron-right" size={14} color="#9CA3AF" />
+            )}
           </TouchableOpacity>
         </View>
         </ScrollView>

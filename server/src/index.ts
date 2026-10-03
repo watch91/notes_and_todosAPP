@@ -10,7 +10,7 @@ import llmRouter from "./routes/llm.js";
 import picturesRouter from "./routes/pictures.js";
 import authRouter from "./routes/auth.js";
 import voiceRouter from "./routes/voice.js";
-import { startDailyNotesTask } from "./tasks/daily-notes.js";
+import dailyNotesRouter from "./routes/daily-notes.js";
 
 const app = express();
 const port = process.env.PORT || 9091;
@@ -36,9 +36,9 @@ app.use('/api/v1/llm', llmRouter);
 app.use('/api/v1/pictures', picturesRouter);
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/voice', voiceRouter);
+app.use('/api/v1/daily-notes', dailyNotesRouter);
 app.use('/api/public', publicApiRouter);
 
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}/`);
-  startDailyNotesTask();
 });
