@@ -1,17 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, Alert, Image, Linking } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
 import { FontAwesome6 } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { logger } from '@/utils/logger';
-import { apiBase, createFormDataFile } from '@/utils';
-import { consumeAiAssistantResult } from '@/utils/ai-assistant-result';
+import { createFormDataFile } from '@/utils';
 
-const API_BASE = apiBase;
+const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 const DEEPSEEK_API_KEY = 'sk-5034bff7138d409dbf94f94c1be9440e';
 
 // 标签对应关系（按照 assets/标签对应关系.txt）
@@ -77,7 +74,6 @@ export default function NoteEditPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState('');
   const [aiModalVisible, setAiModalVisible] = useState(false);
-  const insets = useSafeAreaInsets();
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -273,65 +269,6 @@ export default function NoteEditPage() {
       setAiLoading(false);
     }
   };
-
-  // 打开 AI 写作助手（独立页面）
-  const handleOpenAiAssistant = () => {
-    router.push('/ai-assistant', { currentContent: content || '' });
-  };
-
-  // 从 AI 助手页面返回时，检查是否有待应用的 AI 结果
-  useFocusEffect(
-    useCallback(() => {
-      const aiResult = consumeAiAssistantResult();
-      if (!aiResult) return;
-
-      // 检查 AI 写作助手固定账号是否已在协作者中
-      const AI_USER_ID = '20260509';
-      const isAiInCollaborators = collaborators.some(c => c.user_id === AI_USER_ID);
-
-      const doApply = async () => {
-        try {
-          if (!isAiInCollaborators) {
-            /**
-             * 服务端文件：server/src/routes/ai.ts
-             * 接口：POST /api/v1/notes/ai-assistant/mark
-             * Body 参数：noteId: string | number
-             */
-            const res = await fetch(`${API_BASE}/api/v1/notes/ai-assistant/mark`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ noteId: params.id }),
-            });
-            const data = await res.json();
-            if (!res.ok || !data.success) {
-              Alert.alert('错误', data.error || `添加 AI 协作者失败 (${res.status})`);
-              return;
-            }
-            setCollaborators((prev) => {
-              if (prev.some(c => c.user_id === AI_USER_ID)) return prev;
-              return [...prev, { user_id: AI_USER_ID, user_name: 'AI写作助手' }];
-            });
-          }
-          setContent(aiResult);
-        } catch (err: any) {
-          Alert.alert('错误', err?.message || '应用失败');
-        }
-      };
-
-      if (isAiInCollaborators) {
-        setContent(aiResult);
-      } else {
-        Alert.alert(
-          '公开 AI 使用声明',
-          '使用AI写作助手后将公开声明本文的AI使用情况，是否继续？（操作不可逆）',
-          [
-            { text: '取消', style: 'cancel' },
-            { text: '继续', onPress: () => { doApply(); } },
-          ]
-        );
-      }
-    }, [collaborators])
-  );
 
   // 标签选择相关函数
   const handleSelectLabel = (labelId: number) => {
@@ -716,17 +653,6 @@ export default function NoteEditPage() {
                   <Text className="text-xs text-indigo-600 ml-1">协作者({collaborators.length})</Text>
                 </TouchableOpacity>
               )}
-              <TouchableOpacity
-                onPress={handleOpenAiAssistant}
-                className="flex-row items-center px-3 py-2 mr-2 rounded-full bg-purple-100"
-                style={{
-                  borderWidth: 2,
-                  borderColor: '#C084FC',
-                }}
-              >
-                <FontAwesome6 name="wand-magic-sparkles" size={14} color="#8B5CF6" />
-                <Text className="text-xs text-purple-600 ml-1 font-medium">AI 写作助手</Text>
-              </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSave}
                 disabled={loading || !title.trim()}

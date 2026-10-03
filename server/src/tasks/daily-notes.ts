@@ -110,12 +110,12 @@ async function insertDailyNotes() {
     const topics = pickRandomTopics(2);
     console.log('[DailyNotes] 今日主题:', topics.join(', '));
 
-    const notes: { title: string; content: string; user: string }[] = [];
+    const notes: { title: string; content: string }[] = [];
 
     for (const topic of topics) {
       const note = await generateNoteWithAI(topic);
       if (note) {
-        notes.push({ ...note, user: '20260509' });
+        notes.push(note);
       }
     }
 

@@ -12,8 +12,3 @@ logs/
 node-compile-cache/
 .cozeproj/reduction
 .codegraph
-
-# 环境变量与密钥文件（禁止提交，含 COZE_API_TOKEN 等 PAT 凭证）
-.env
-.env.*
-!.env.example

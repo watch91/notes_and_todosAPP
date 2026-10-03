@@ -3,9 +3,8 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Switch } from 'react-native';
 import { router } from 'expo-router';
 import { logger } from '@/utils/logger';
-import { apiBase } from '@/utils';
 
-const EXPO_PUBLIC_BACKEND_BASE_URL = apiBase;
+const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
 export default function FeedbackPage() {
   const [content, setContent] = useState('');

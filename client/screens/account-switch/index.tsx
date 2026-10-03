@@ -20,9 +20,7 @@ interface SavedAccount {
 }
 
 const ACCOUNTS_STORAGE_KEY = 'aiostation_accounts';
-import { apiBase } from '@/utils';
-
-const EXPO_PUBLIC_BACKEND_BASE_URL = apiBase;
+const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || '';
 
 export default function AccountSwitchScreen() {
   const router = useSafeRouter();

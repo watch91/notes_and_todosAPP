@@ -49,20 +49,4 @@ else
 fi
 info "==================== dist打包完成！====================\n"
 
-info "==================== web 打包 ===================="
-info "开始执行：pnpm run build:web (client)"
-if [ -f "$ROOT_DIR/client/package.json" ]; then
-  # 生产环境：清空 EXPO_PUBLIC_BACKEND_BASE_URL，让前端走相对路径，
-  # 这样 Web 端和 API 都在同一个端口（5000）上，由 Express 同时托管
-  (cd "$ROOT_DIR/client" && EXPO_PUBLIC_BACKEND_BASE_URL="" pnpm run build:web) || error "web 打包失败"
-  if [ -d "$ROOT_DIR/client/dist" ]; then
-    info "client/dist 已生成"
-  else
-    error "client/dist 未生成！"
-  fi
-else
-  warn "未找到 $ROOT_DIR/client/package.json，跳过 web 打包"
-fi
-info "==================== web 打包完成！====================\n"
-
 info "下一步：执行 ./prod_run.sh 启动服务"

@@ -6,9 +6,8 @@ import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '@/utils/logger';
-import { apiBase } from '@/utils';
 
-const EXPO_PUBLIC_BACKEND_BASE_URL = apiBase;
+const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
 type ConfigKey = 'download_url' | 'new_version' | 'Version_beta_testing' | 'beta_version_download_URL' | 'version_suffix';
 

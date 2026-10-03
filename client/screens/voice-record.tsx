@@ -5,9 +5,8 @@ import { Screen } from '@/components/Screen';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import * as FileSystem from 'expo-file-system/legacy';
-import { apiBase } from '@/utils';
 
-const EXPO_PUBLIC_BACKEND_BASE_URL = apiBase;
+const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL;
 
 export default function VoiceRecordScreen() {
   const router = useSafeRouter();

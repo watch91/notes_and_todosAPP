@@ -6,14 +6,6 @@ dayjs.extend(utc);
 const API_BASE = (process.env.EXPO_PUBLIC_API_BASE ?? '').replace(/\/$/, '');
 
 /**
- * API 基础地址。
- * - 取值自 `EXPO_PUBLIC_BACKEND_BASE_URL`
- * - 未配置时返回空字符串（前端走相对路径，Web 端由同源 Express 托管）
- * - 生产 web 构建中该变量被显式置空，配合 server 端静态文件服务
- */
-export const apiBase = (process.env.EXPO_PUBLIC_BACKEND_BASE_URL ?? '').replace(/\/$/, '');
-
-/**
  * 创建跨平台兼容的文件对象，用于 FormData.append()
  * - Web 端返回 File 对象
  * - 移动端返回 { uri, type, name } 对象（RN fetch 会自动处理）

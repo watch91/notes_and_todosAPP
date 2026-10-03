@@ -5,9 +5,7 @@ import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { DateTimePickerModal } from '@/components/DateTimePickerModal';
 
-import { apiBase } from '@/utils';
-
-const API_BASE = apiBase;
+const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
 export default function TodoEditPage() {
   const router = useSafeRouter();
