@@ -129,46 +129,37 @@ router.get('/recommend', async (req, res) => {
       };
     });
 
-    // 7) 为每条笔记查询 pictures 表的第一张图片作为封面，生成签名 URL
+    // 7) 为每条笔记查询 pictures 表中 note_id 匹配的最近一张图片作为封面
+    //    严格按 pictures 表取最新一行（按 id DESC），无则返回 null（前端走默认封面）
     const noteIds = notesWithMeta.map((n: any) => n.id);
-    let coverMap: Record<number, string | null> = {};
+    const coverMap: Record<number, string | null> = {};
     if (noteIds.length > 0) {
       const { data: pictures, error: picErr } = await client
         .from('pictures')
-        .select('id, note_id, image_key, created_at')
+        .select('id, note_id, image_key')
         .in('note_id', noteIds)
-        .order('created_at', { ascending: true });
+        .order('id', { ascending: false });
       if (!picErr && pictures) {
-        // 按 note_id 分组，每组取第一张
-        for (const p of pictures as Array<{ note_id: number; image_key: string }>) {
-          if (coverMap[p.note_id] === undefined) {
-            coverMap[p.note_id] = null; // 标记为"有记录但 URL 待生成"
-            try {
-              const url = await storage.generatePresignedUrl({
-                key: p.image_key,
-                expireTime: ONE_YEAR_SECONDS,
-              });
-              coverMap[p.note_id] = url;
-            } catch (e) {
-              coverMap[p.note_id] = null;
-            }
+        // 每个 note_id 只保留最新一行（按 id DESC 遍历，第一次遇到即覆盖）
+        for (const p of pictures as Array<{ id: number; note_id: number; image_key: string }>) {
+          if (coverMap[p.note_id] !== undefined) continue; // 已记录过更新的，跳过
+          try {
+            const url = await storage.generatePresignedUrl({
+              key: p.image_key,
+              expireTime: ONE_YEAR_SECONDS,
+            });
+            coverMap[p.note_id] = url;
+          } catch (e) {
+            coverMap[p.note_id] = null;
           }
         }
       }
     }
-    // cover_url 优先级：pictures 表附件 → notes.images 字段首项 URL
-    const notesWithCover = notesWithMeta.map((n: any) => {
-      let coverUrl = coverMap[n.id];
-      if (coverUrl === null || coverUrl === undefined) {
-        // fallback：使用 notes.images 字段（JSON 字符串数组）的第一项
-        const imgs: string[] = Array.isArray(n.images) ? n.images : [];
-        coverUrl = imgs.length > 0 ? imgs[0] : null;
-      }
-      return {
-        ...n,
-        cover_url: coverUrl,
-      };
-    });
+    // cover_url：直接来自 pictures 表中该 note 的最新一行附件；没有附件则返回 null
+    const notesWithCover = notesWithMeta.map((n: any) => ({
+      ...n,
+      cover_url: coverMap[n.id] ?? null,
+    }));
 
     res.json({ success: true, data: normalizeNotesTimestamps(notesWithCover) });
   } catch (error: any) {
