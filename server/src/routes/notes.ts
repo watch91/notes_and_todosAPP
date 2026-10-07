@@ -4,9 +4,9 @@ import { getSupabaseClient } from '../storage/database/supabase-client.js';
 const router = Router();
 
 // 辅助函数：将时间字段规范化为带 UTC 时区的 ISO 格式
-function normalizeTimestamps<T extends Record<string, any>>(item: T): T {
+function normalizeTimestamps(item: Record<string, any>): Record<string, any> {
   if (item && typeof item === 'object') {
-    const result = { ...item };
+    const result: Record<string, any> = { ...item };
     if (result.created_at) {
       result.created_at = new Date(result.created_at).toISOString();
     }
@@ -18,7 +18,7 @@ function normalizeTimestamps<T extends Record<string, any>>(item: T): T {
   return item;
 }
 
-function normalizeNotesTimestamps(data: any[] | null | undefined): any[] | null {
+function normalizeNotesTimestamps(data: any[] | null | undefined): any[] | null | undefined {
   if (!data) return data;
   return data.map(item => normalizeTimestamps(item));
 }
@@ -40,8 +40,11 @@ router.get('/search', async (req, res) => {
 // 获取所有笔记
 router.get('/', async (req, res) => {
   try {
+    const sort = (req.query.sort as string) || 'updated_at';
+    // 限制允许的排序字段，防止任意字段排序
+    const sortField = sort === 'created_at' ? 'created_at' : 'updated_at';
     const client = getSupabaseClient();
-    const { data, error } = await client.from('notes').select('*').order('updated_at', { ascending: false });
+    const { data, error } = await client.from('notes').select('*').order(sortField, { ascending: false });
     if (error) throw new Error(`查询失败: ${error.message}`);
     
     // 获取所有笔记的创建者信息

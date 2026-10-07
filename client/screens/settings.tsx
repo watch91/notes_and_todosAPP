@@ -8,10 +8,12 @@ import { Uniwind } from 'uniwind';
 import { logger } from '@/utils/logger';
 
 type ThemeMode = 'system' | 'light' | 'dark';
+type SortMode = 'updated_at' | 'created_at';
 
 export default function SettingsPage() {
   const router = useSafeRouter();
   const [themeMode, setThemeMode] = useState<ThemeMode>('system');
+  const [sortMode, setSortMode] = useState<SortMode>('updated_at');
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
@@ -19,6 +21,7 @@ export default function SettingsPage() {
   useEffect(() => {
     logger.info('设置', '进入设置页面');
     loadThemeSetting();
+    loadSortSetting();
     loadUserInfo();
   }, []);
 
@@ -27,6 +30,17 @@ export default function SettingsPage() {
       const saved = await AsyncStorage.getItem('theme_mode');
       if (saved === 'light' || saved === 'dark' || saved === 'system') {
         setThemeMode(saved);
+      }
+    } catch (e) {
+      logger.error('设置', e instanceof Error ? e : new Error(String(e)));
+    }
+  };
+
+  const loadSortSetting = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('home_sort_preference');
+      if (saved === 'updated_at' || saved === 'created_at') {
+        setSortMode(saved);
       }
     } catch (e) {
       logger.error('设置', e instanceof Error ? e : new Error(String(e)));
@@ -86,6 +100,17 @@ export default function SettingsPage() {
     Uniwind.setTheme(mode);
     try {
       await AsyncStorage.setItem('theme_mode', mode);
+    } catch (e) {
+      logger.error('设置', e instanceof Error ? e : new Error(String(e)));
+    }
+  };
+
+  const handleSortChange = async (mode: SortMode) => {
+    const modeNames = { updated_at: '按更新时间排序', created_at: '按创建时间排序' };
+    logger.info('设置', `切换首页排序: ${modeNames[mode]}`);
+    setSortMode(mode);
+    try {
+      await AsyncStorage.setItem('home_sort_preference', mode);
     } catch (e) {
       logger.error('设置', e instanceof Error ? e : new Error(String(e)));
     }
@@ -230,6 +255,48 @@ export default function SettingsPage() {
                 <Text className="text-xs text-muted mt-0.5">始终使用深色主题</Text>
               </View>
               {themeMode === 'dark' && <FontAwesome6 name="circle-check" size={20} color="#4F46E5" />}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* List Settings */}
+        <View className="mx-5 mt-4">
+          <Text className="text-sm text-muted mb-3 ml-1">列表设置</Text>
+          <View className="bg-white rounded-2xl overflow-hidden shadow-sm"
+            style={{
+              shadowColor: '#4F46E5',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 8,
+              elevation: 2,
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => handleSortChange('updated_at')}
+              className="flex-row items-center px-5 py-4 border-b border-gray-100"
+            >
+              <View className="w-10 h-10 rounded-xl bg-emerald-50 items-center justify-center">
+                <FontAwesome6 name="clock-rotate-left" size={16} color="#10B981" />
+              </View>
+              <View className="flex-1 ml-3">
+                <Text className="font-medium text-foreground">按更新时间排序</Text>
+                <Text className="text-xs text-muted mt-0.5">最近编辑过的笔记排在前面</Text>
+              </View>
+              {sortMode === 'updated_at' && <FontAwesome6 name="circle-check" size={20} color="#4F46E5" />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => handleSortChange('created_at')}
+              className="flex-row items-center px-5 py-4"
+            >
+              <View className="w-10 h-10 rounded-xl bg-violet-50 items-center justify-center">
+                <FontAwesome6 name="calendar-plus" size={16} color="#8B5CF6" />
+              </View>
+              <View className="flex-1 ml-3">
+                <Text className="font-medium text-foreground">按创建时间排序</Text>
+                <Text className="text-xs text-muted mt-0.5">最新创建的笔记排在前面</Text>
+              </View>
+              {sortMode === 'created_at' && <FontAwesome6 name="circle-check" size={20} color="#4F46E5" />}
             </TouchableOpacity>
           </View>
         </View>

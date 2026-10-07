@@ -6,8 +6,11 @@ const router = Router();
 // 获取所有待办
 router.get('/', async (req, res) => {
   try {
+    const sort = (req.query.sort as string) || 'updated_at';
+    // 限制允许的排序字段
+    const sortField = sort === 'created_at' ? 'created_at' : 'updated_at';
     const client = getSupabaseClient();
-    const { data, error } = await client.from('todos').select('*').order('created_at', { ascending: false });
+    const { data, error } = await client.from('todos').select('*').order(sortField, { ascending: false });
     if (error) throw new Error(`查询失败: ${error.message}`);
     res.json({ success: true, data });
   } catch (error: any) {

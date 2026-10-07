@@ -51,6 +51,7 @@ interface Todo {
 
 type ItemType = 'note' | 'todo';
 type FilterType = 'all' | 'note' | 'todo';
+type SortType = 'updated_at' | 'created_at';
 
 interface HomeItem {
   type: ItemType;
@@ -60,11 +61,14 @@ interface HomeItem {
   is_completed?: boolean;
   due_date?: string;
   created_at: string;
+  updated_at: string;
   labels?: (number | null)[];
   user_name?: string;
   user?: string | null;
   collaborator_count?: number;
 }
+
+const SORT_STORAGE_KEY = 'home_sort_preference';
 
 export default function HomePage() {
   const router = useSafeRouter();
@@ -80,6 +84,7 @@ export default function HomePage() {
   const [deleteConfirmStep, setDeleteConfirmStep] = useState<'first' | 'second' | 'input' | null>(null);
   const [deleteInputTitle, setDeleteInputTitle] = useState('');
   const [showLoginWarning, setShowLoginWarning] = useState(false);
+  const [sortType, setSortType] = useState<SortType>('updated_at');
 
   const checkAgreement = async () => {
     try {
@@ -132,14 +137,27 @@ export default function HomePage() {
   // 检查是否需要显示协议
   useEffect(() => {
     checkAgreement();
+    loadSortPreference();
   }, []);
+
+  const loadSortPreference = async () => {
+    try {
+      const saved = await AsyncStorage.getItem(SORT_STORAGE_KEY);
+      if (saved === 'updated_at' || saved === 'created_at') {
+        setSortType(saved);
+      }
+    } catch (e) {
+      console.error('Failed to load sort preference:', e);
+    }
+  };
 
   const fetchData = useCallback(async () => {
     try {
-      logger.info('首页', '开始获取笔记和待办数据');
+      logger.info('首页', `开始获取笔记和待办数据（排序方式：${sortType}）`);
+      const sortParam = `sort=${sortType}`;
       const [notesRes, todosRes] = await Promise.all([
-        fetch(`${API_BASE}/api/v1/notes`),
-        fetch(`${API_BASE}/api/v1/todos`),
+        fetch(`${API_BASE}/api/v1/notes?${sortParam}`),
+        fetch(`${API_BASE}/api/v1/todos?${sortParam}`),
       ]);
       const notesData = await notesRes.json();
       const todosData = await todosRes.json();
@@ -150,6 +168,7 @@ export default function HomePage() {
         title: n.title,
         subtitle: n.content?.substring(0, 50) || '无内容',
         created_at: n.created_at,
+        updated_at: n.updated_at,
         labels: [n.label_1 ?? null, n.label_2 ?? null, n.label_3 ?? null].filter(l => l !== null),
         user_name: n.author_name || '匿名用户',
         user: n.user,
@@ -163,20 +182,27 @@ export default function HomePage() {
         is_completed: t.is_completed,
         due_date: t.due_date,
         created_at: t.created_at,
+        updated_at: t.updated_at,
       }));
 
-      setItems([...notes, ...todos].sort((a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      ));
+      // 按用户选择的字段排序（默认按更新时间）
+      setItems([...notes, ...todos].sort((a, b) => {
+        const aTime = new Date(a[sortType]).getTime();
+        const bTime = new Date(b[sortType]).getTime();
+        return bTime - aTime;
+      }));
       logger.info('首页', `数据加载完成，共${notes.length}条笔记，${todos.length}条待办`);
     } catch (error) {
       logger.error('首页', error instanceof Error ? error : new Error(String(error)));
     }
-  }, []);
+  }, [sortType]);
 
   useFocusEffect(
     useCallback(() => {
-      fetchData();
+      // 每次聚焦时重新读取排序偏好，确保从设置页返回后立即生效
+      loadSortPreference().then(() => {
+        fetchData();
+      });
     }, [fetchData])
   );
 
@@ -527,7 +553,7 @@ export default function HomePage() {
                             ? `${item.user_name || '匿名用户'} 等` 
                             : (item.user_name || '匿名用户')}
                         </Text>
-                        <Text className="text-xs text-muted ml-2">· {formatDate(item.created_at)}</Text>
+                        <Text className="text-xs text-muted ml-2">· {formatDate(item[sortType])}</Text>
                       </View>
                     </View>
                     <TouchableOpacity
