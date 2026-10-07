@@ -7,13 +7,16 @@ const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 // 初始化 S3Storage
-const storage = new S3Storage({
+export const storage = new S3Storage({
   endpointUrl: process.env.COZE_BUCKET_ENDPOINT_URL,
   accessKey: '',
   secretKey: '',
   bucketName: process.env.COZE_BUCKET_NAME,
   region: 'cn-beijing',
 });
+
+// 一年的图片容量超时时间（与其他图片接口一致）
+export const ONE_YEAR_SECONDS = 365 * 24 * 60 * 60;
 
 // 上传图片
 router.post('/', upload.single('file'), async (req, res) => {
@@ -37,8 +40,7 @@ router.post('/', upload.single('file'), async (req, res) => {
       contentType: file.mimetype,
     });
 
-    // 生成1年后过期的签名URL
-    const oneYearInSeconds = 365 * 24 * 60 * 60;
+    const oneYearInSeconds = ONE_YEAR_SECONDS;
     const imageUrl = await storage.generatePresignedUrl({
       key: imageKey,
       expireTime: oneYearInSeconds,
@@ -76,12 +78,11 @@ router.get('/note/:noteId', async (req, res) => {
     if (error) throw error;
 
     // 为每张图片生成签名URL
-    const oneYearInSeconds = 365 * 24 * 60 * 60;
     const picturesWithUrls = await Promise.all(
       data.map(async (pic: { image_key: string; id: number; note_id: number; created_at: string }) => {
         const imageUrl = await storage.generatePresignedUrl({
           key: pic.image_key,
-          expireTime: oneYearInSeconds,
+          expireTime: ONE_YEAR_SECONDS,
         });
         return { ...pic, image_url: imageUrl };
       })

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getSupabaseClient } from '../storage/database/supabase-client.js';
+import { storage, ONE_YEAR_SECONDS } from './pictures.js';
 
 const router = Router();
 
@@ -128,7 +129,39 @@ router.get('/recommend', async (req, res) => {
       };
     });
 
-    res.json({ success: true, data: normalizeNotesTimestamps(notesWithMeta) });
+    // 7) 为每条笔记查询 pictures 表的第一张图片作为封面，生成签名 URL
+    const noteIds = notesWithMeta.map((n: any) => n.id);
+    let coverMap: Record<number, string | null> = {};
+    if (noteIds.length > 0) {
+      const { data: pictures, error: picErr } = await client
+        .from('pictures')
+        .select('id, note_id, image_key, created_at')
+        .in('note_id', noteIds)
+        .order('created_at', { ascending: true });
+      if (!picErr && pictures) {
+        // 按 note_id 分组，每组取第一张
+        for (const p of pictures as Array<{ note_id: number; image_key: string }>) {
+          if (coverMap[p.note_id] === undefined) {
+            coverMap[p.note_id] = null; // 标记为"有记录但 URL 待生成"
+            try {
+              const url = await storage.generatePresignedUrl({
+                key: p.image_key,
+                expireTime: ONE_YEAR_SECONDS,
+              });
+              coverMap[p.note_id] = url;
+            } catch (e) {
+              coverMap[p.note_id] = null;
+            }
+          }
+        }
+      }
+    }
+    const notesWithCover = notesWithMeta.map((n: any) => ({
+      ...n,
+      cover_url: coverMap[n.id] ?? null,
+    }));
+
+    res.json({ success: true, data: normalizeNotesTimestamps(notesWithCover) });
   } catch (error: any) {
     console.error('Error recommending notes:', error);
     res.status(500).json({ success: false, error: error.message });

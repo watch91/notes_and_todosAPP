@@ -8,6 +8,24 @@ import { useSafeRouter } from '@/hooks/useSafeRouter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '@/utils/logger';
 
+// 静态兜底封面池（从 picture/ 目录复制而来）
+const FALLBACK_COVERS: number[] = [
+  require('@/assets/cover-pictures/OIP-C.jpg'),
+  require('@/assets/cover-pictures/OIP-C (1).jpg'),
+  require('@/assets/cover-pictures/OIP-C (2).jpg'),
+  require('@/assets/cover-pictures/OIP-C (3).jpg'),
+  require('@/assets/cover-pictures/OIP-C (4).jpg'),
+  require('@/assets/cover-pictures/OIP-C (5).jpg'),
+  require('@/assets/cover-pictures/OIP-C (6).jpg'),
+  require('@/assets/cover-pictures/OIP-C (7).jpg'),
+];
+
+// 用 note.id 作为种子从兜底池中稳定地选一张封面（避免瀑布流刷新跳动）
+function pickFallbackCover(noteId: number): number {
+  const stableSeed = (noteId * 9301 + 49297) % 233280;
+  return FALLBACK_COVERS[stableSeed % FALLBACK_COVERS.length];
+}
+
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
 // 屏蔽关键词（与旧首页保持一致）
@@ -31,6 +49,7 @@ interface MasonryItem {
   title: string;
   content: string;
   images: string[];
+  cover_url?: string | null;
   aspectRatio: number;
   label_1?: number | null;
   author_name: string;
@@ -110,7 +129,9 @@ interface NoteCardProps {
 
 function NoteCard({ item, columnWidth, onPress }: NoteCardProps) {
   const imgHeight = columnWidth / item.aspectRatio;
-  const cover = item.images[0];
+  // 优先用后端返回的封面（pictures 表的第一张附件），否则从静态兜底池中按 id 稳定选取
+  const remoteCover = item.cover_url && item.cover_url.trim().length > 0 ? item.cover_url : null;
+  const coverUri = remoteCover ? { uri: remoteCover } : pickFallbackCover(item.id);
   return (
     <TouchableOpacity
       activeOpacity={0.85}
@@ -125,9 +146,9 @@ function NoteCard({ item, columnWidth, onPress }: NoteCardProps) {
       }}
     >
       <View style={{ width: columnWidth, height: imgHeight, backgroundColor: '#F1F5F9' }}>
-        {cover ? (
+        {coverUri ? (
           <Image
-            source={{ uri: cover }}
+            source={coverUri}
             style={{ width: '100%', height: '100%' }}
             contentFit="cover"
             transition={200}
