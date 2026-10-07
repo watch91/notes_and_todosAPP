@@ -142,7 +142,12 @@ function NoteCard({ item, columnWidth, onPress }: NoteCardProps) {
       try {
         const res = await fetch(`${API_BASE}/api/v1/pictures/note/${item.id}`);
         const json = await res.json();
-        const list = Array.isArray(json?.data) ? json.data : [];
+        // 接口可能直接返回数组，也可能包装在 {data: [...]} 里，两种都处理
+        const list: Array<any> = Array.isArray(json)
+          ? json
+          : Array.isArray(json?.data)
+            ? json.data
+            : [];
         // 接口已按 created_at ASC 排序，取最新一行（最后一张）
         const latest = list[list.length - 1];
         if (!cancelled) {
