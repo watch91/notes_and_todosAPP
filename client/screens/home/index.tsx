@@ -149,8 +149,8 @@ function NoteCard({ item, columnWidth, onPress }: NoteCardProps) {
           {item.title}
         </Text>
         <View className="flex-row items-center mt-1.5">
-          <View className="w-4 h-4 rounded-full bg-rose-100 items-center justify-center mr-1">
-            <FontAwesome6 name="user" size={8} color="#F43F5E" />
+          <View className="w-4 h-4 rounded-full bg-blue-100 items-center justify-center mr-1">
+            <FontAwesome6 name="user" size={8} color="#3B82F6" />
           </View>
           <Text className="text-[11px] text-muted flex-1" numberOfLines={1}>
             {item.author_name}
@@ -161,7 +161,7 @@ function NoteCard({ item, columnWidth, onPress }: NoteCardProps) {
             {formatRelativeTime(item.updated_at)}
           </Text>
           <View className="flex-row items-center">
-            <FontAwesome6 name="heart" size={10} color="#F43F5E" />
+            <FontAwesome6 name="heart" size={10} color="#3B82F6" />
             <Text className="text-[10px] text-muted ml-1">
               {computeMockLikes(item.id)}
             </Text>
@@ -391,7 +391,7 @@ export default function HomePage() {
                   {cat.label}
                 </Text>
                 {isActive && (
-                  <View className="h-1 w-6 bg-rose-500 rounded-full mt-1" />
+                  <View className="h-1 w-6 bg-blue-500 rounded-full mt-1" />
                 )}
               </TouchableOpacity>
             );
@@ -403,7 +403,7 @@ export default function HomePage() {
         <View className="px-5 pb-2 flex-row items-center justify-end">
           <Text className="text-xs text-muted mr-2">屏蔽测试笔记</Text>
           <TouchableOpacity
-            className={`w-10 h-6 rounded-full p-0.5 ${屏蔽过滤开关 ? 'bg-rose-500' : 'bg-gray-300'}`}
+            className={`w-10 h-6 rounded-full p-0.5 ${屏蔽过滤开关 ? 'bg-blue-500' : 'bg-gray-300'}`}
             onPress={() => set屏蔽过滤开关(!屏蔽过滤开关)}
           >
             <View className={`w-5 h-5 rounded-full bg-white ${屏蔽过滤开关 ? 'ml-4' : 'ml-0'}`} />
@@ -414,7 +414,7 @@ export default function HomePage() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F43F5E" />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3B82F6" />
           }
           contentContainerStyle={{ paddingHorizontal: PADDING, paddingBottom: 96 }}
         >
@@ -450,9 +450,9 @@ export default function HomePage() {
         <View className="absolute bottom-6 right-5">
           <TouchableOpacity
             onPress={() => setModalVisible(true)}
-            className="w-14 h-14 rounded-full bg-rose-500 items-center justify-center"
+            className="w-14 h-14 rounded-full bg-blue-500 items-center justify-center"
             style={{
-              shadowColor: '#F43F5E',
+              shadowColor: '#3B82F6',
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.35,
               shadowRadius: 8,
@@ -476,9 +476,9 @@ export default function HomePage() {
               <View className="flex-row gap-3">
                 <TouchableOpacity
                   onPress={handleCreateNote}
-                  className="flex-1 bg-rose-50 rounded-2xl p-5 items-center"
+                  className="flex-1 bg-blue-50 rounded-2xl p-5 items-center"
                 >
-                  <View className="w-12 h-12 rounded-xl bg-rose-500 items-center justify-center mb-3">
+                  <View className="w-12 h-12 rounded-xl bg-blue-500 items-center justify-center mb-3">
                     <FontAwesome6 name="note-sticky" size={20} color="white" />
                   </View>
                   <Text className="font-medium text-foreground">笔记</Text>
@@ -525,7 +525,7 @@ export default function HomePage() {
                   <Text className="text-center text-gray-600 font-medium">不同意</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  className="flex-1 bg-rose-500 rounded-xl py-3"
+                  className="flex-1 bg-blue-500 rounded-xl py-3"
                   onPress={handleAgree}
                 >
                   <Text className="text-center text-white font-medium">同意</Text>
@@ -553,7 +553,7 @@ export default function HomePage() {
                   <Text className="text-center text-gray-600 font-medium">继续匿名</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  className="flex-1 bg-rose-500 rounded-xl py-3"
+                  className="flex-1 bg-blue-500 rounded-xl py-3"
                   onPress={handleGoToLogin}
                 >
                   <Text className="text-center text-white font-medium">去登录</Text>
