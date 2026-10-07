@@ -23,6 +23,118 @@ function normalizeNotesTimestamps(data: any[] | null | undefined): any[] | null 
   return data.map(item => normalizeTimestamps(item));
 }
 
+// 随机推荐笔记（按更新时间衰减权重的新鲜度推荐）
+// 年龄越大权重越小，但仍可能命中（保证完全的随机性）
+router.get('/recommend', async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(parseInt((req.query.limit as string) || '30', 10) || 30, 100));
+    const labelParam = req.query.label as string | undefined;
+    const client = getSupabaseClient();
+
+    // 1) 先查全部（或按 label_1 过滤）的候选笔记
+    let query = client.from('notes').select('*');
+    if (labelParam) {
+      const labelId = parseInt(labelParam, 10);
+      if (!Number.isNaN(labelId)) {
+        query = query.eq('label_1', labelId);
+      }
+    }
+    const { data, error } = await query;
+    if (error) throw new Error(`查询失败: ${error.message}`);
+    if (!data || data.length === 0) {
+      return res.json({ success: true, data: [] });
+    }
+
+    // 2) 计算每条笔记的权重：weight = 1 / (1 + age_days)
+    //    其中 age_days 基于 updated_at 计算（天数）
+    //    越新的笔记 age 越小 → 权重越大，但所有笔记仍非零，旧的也有机会命中
+    const now = Date.now();
+    const itemsWithWeight = data.map((n: Record<string, any>) => {
+      const updated = n.updated_at ? new Date(n.updated_at).getTime() : now;
+      const ageDays = Math.max(0, (now - updated) / 86400000);
+      const weight = 1 / (1 + ageDays);
+      return { note: n, weight };
+    });
+
+    // 3) 计算累计权重
+    let totalWeight = 0;
+    const cumulative: { note: any; cumWeight: number }[] = [];
+    for (const item of itemsWithWeight) {
+      totalWeight += item.weight;
+      cumulative.push({ note: item.note, cumWeight: totalWeight });
+    }
+
+    // 4) 加权随机抽取（不放回，循环直到取够 limit 条或达到最大尝试次数）
+    const picked: any[] = [];
+    const pickedIds = new Set<number>();
+    const maxAttempts = limit * 10;
+    let attempts = 0;
+    while (picked.length < limit && attempts < maxAttempts) {
+      attempts++;
+      // 随机一个累计权重点
+      const r = Math.random() * totalWeight;
+      // 二分查找命中点
+      let lo = 0;
+      let hi = cumulative.length - 1;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (cumulative[mid].cumWeight < r) {
+          lo = mid + 1;
+        } else {
+          hi = mid;
+        }
+      }
+      const hit = cumulative[lo];
+      if (!pickedIds.has(hit.note.id)) {
+        pickedIds.add(hit.note.id);
+        picked.push(hit.note);
+      }
+      // 候选不足时退出
+      if (pickedIds.size >= cumulative.length) break;
+    }
+
+    // 5) 获取作者信息
+    const userIds = [...new Set(picked.filter((n: any) => n.user).map((n: any) => n.user))];
+    let userMap: Record<string, string> = {};
+    if (userIds.length > 0) {
+      const { data: users } = await client.from('users').select('user_id, user_name').in('user_id', userIds);
+      if (users) {
+        userMap = users.reduce((acc: Record<string, string>, u: any) => {
+          acc[u.user_id] = u.user_name;
+          return acc;
+        }, {});
+      }
+    }
+
+    // 6) 解析 images JSON 字符串、附上 author_name 和协作数量
+    const notesWithMeta = picked.map((note: any) => {
+      let images: string[] = [];
+      try {
+        images = JSON.parse(note.images || '[]');
+      } catch {
+        images = [];
+      }
+      let collaboratorCount = 0;
+      try {
+        collaboratorCount = JSON.parse(note.collaborators || '[]').length;
+      } catch {
+        collaboratorCount = 0;
+      }
+      return {
+        ...note,
+        images,
+        author_name: note.user ? (userMap[note.user] || '匿名用户') : '匿名用户',
+        collaborator_count: collaboratorCount,
+      };
+    });
+
+    res.json({ success: true, data: normalizeNotesTimestamps(notesWithMeta) });
+  } catch (error: any) {
+    console.error('Error recommending notes:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // 搜索笔记（按标题模糊搜索）
 router.get('/search', async (req, res) => {
   try {
