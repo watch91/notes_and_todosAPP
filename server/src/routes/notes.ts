@@ -156,10 +156,19 @@ router.get('/recommend', async (req, res) => {
         }
       }
     }
-    const notesWithCover = notesWithMeta.map((n: any) => ({
-      ...n,
-      cover_url: coverMap[n.id] ?? null,
-    }));
+    // cover_url 优先级：pictures 表附件 → notes.images 字段首项 URL
+    const notesWithCover = notesWithMeta.map((n: any) => {
+      let coverUrl = coverMap[n.id];
+      if (coverUrl === null || coverUrl === undefined) {
+        // fallback：使用 notes.images 字段（JSON 字符串数组）的第一项
+        const imgs: string[] = Array.isArray(n.images) ? n.images : [];
+        coverUrl = imgs.length > 0 ? imgs[0] : null;
+      }
+      return {
+        ...n,
+        cover_url: coverUrl,
+      };
+    });
 
     res.json({ success: true, data: normalizeNotesTimestamps(notesWithCover) });
   } catch (error: any) {
