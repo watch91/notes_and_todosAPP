@@ -9,11 +9,14 @@ import { logger } from '@/utils/logger';
 
 type ThemeMode = 'system' | 'light' | 'dark';
 type SortMode = 'updated_at' | 'created_at';
+type UiVersion = 'new' | 'old';
 
 export default function SettingsPage() {
   const router = useSafeRouter();
   const [themeMode, setThemeMode] = useState<ThemeMode>('system');
   const [sortMode, setSortMode] = useState<SortMode>('updated_at');
+  const [homeUi, setHomeUi] = useState<UiVersion>('new');
+  const [noteEditUi, setNoteEditUi] = useState<UiVersion>('new');
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
@@ -22,6 +25,8 @@ export default function SettingsPage() {
     logger.info('设置', '进入设置页面');
     loadThemeSetting();
     loadSortSetting();
+    loadHomeUiSetting();
+    loadNoteEditUiSetting();
     loadUserInfo();
   }, []);
 
@@ -41,6 +46,28 @@ export default function SettingsPage() {
       const saved = await AsyncStorage.getItem('home_sort_preference');
       if (saved === 'updated_at' || saved === 'created_at') {
         setSortMode(saved);
+      }
+    } catch (e) {
+      logger.error('设置', e instanceof Error ? e : new Error(String(e)));
+    }
+  };
+
+  const loadHomeUiSetting = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('home_ui_preference');
+      if (saved === 'new' || saved === 'old') {
+        setHomeUi(saved);
+      }
+    } catch (e) {
+      logger.error('设置', e instanceof Error ? e : new Error(String(e)));
+    }
+  };
+
+  const loadNoteEditUiSetting = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('note_edit_ui_preference');
+      if (saved === 'new' || saved === 'old') {
+        setNoteEditUi(saved);
       }
     } catch (e) {
       logger.error('设置', e instanceof Error ? e : new Error(String(e)));
@@ -111,6 +138,28 @@ export default function SettingsPage() {
     setSortMode(mode);
     try {
       await AsyncStorage.setItem('home_sort_preference', mode);
+    } catch (e) {
+      logger.error('设置', e instanceof Error ? e : new Error(String(e)));
+    }
+  };
+
+  const handleHomeUiChange = async (mode: UiVersion) => {
+    const modeNames = { new: '新版（瀑布流）', old: '旧版（列表）' };
+    logger.info('设置', `切换首页界面: ${modeNames[mode]}`);
+    setHomeUi(mode);
+    try {
+      await AsyncStorage.setItem('home_ui_preference', mode);
+    } catch (e) {
+      logger.error('设置', e instanceof Error ? e : new Error(String(e)));
+    }
+  };
+
+  const handleNoteEditUiChange = async (mode: UiVersion) => {
+    const modeNames = { new: '新版（小红书风格）', old: '旧版' };
+    logger.info('设置', `切换笔记阅读界面: ${modeNames[mode]}`);
+    setNoteEditUi(mode);
+    try {
+      await AsyncStorage.setItem('note_edit_ui_preference', mode);
     } catch (e) {
       logger.error('设置', e instanceof Error ? e : new Error(String(e)));
     }
@@ -297,6 +346,90 @@ export default function SettingsPage() {
                 <Text className="text-xs text-muted mt-0.5">最新创建的笔记排在前面</Text>
               </View>
               {sortMode === 'created_at' && <FontAwesome6 name="circle-check" size={20} color="#4F46E5" />}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* UI Version Settings - 主页 */}
+        <View className="mx-5 mt-4">
+          <Text className="text-sm text-muted mb-3 ml-1">主页样式</Text>
+          <View className="bg-white rounded-2xl overflow-hidden shadow-sm"
+            style={{
+              shadowColor: '#4F46E5',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 8,
+              elevation: 2,
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => handleHomeUiChange('new')}
+              className="flex-row items-center px-5 py-4 border-b border-gray-100"
+            >
+              <View className="w-10 h-10 rounded-xl bg-blue-50 items-center justify-center">
+                <FontAwesome6 name="table-cells-large" size={16} color="#3B82F6" />
+              </View>
+              <View className="flex-1 ml-3">
+                <Text className="font-medium text-foreground">新版（小红书瀑布流）</Text>
+                <Text className="text-xs text-muted mt-0.5">双列错落卡片，随机推荐</Text>
+              </View>
+              {homeUi === 'new' && <FontAwesome6 name="circle-check" size={20} color="#4F46E5" />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => handleHomeUiChange('old')}
+              className="flex-row items-center px-5 py-4"
+            >
+              <View className="w-10 h-10 rounded-xl bg-orange-50 items-center justify-center">
+                <FontAwesome6 name="list-ul" size={16} color="#F97316" />
+              </View>
+              <View className="flex-1 ml-3">
+                <Text className="font-medium text-foreground">旧版（合并列表）</Text>
+                <Text className="text-xs text-muted mt-0.5">笔记 + 待办合并的单列列表</Text>
+              </View>
+              {homeUi === 'old' && <FontAwesome6 name="circle-check" size={20} color="#4F46E5" />}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* UI Version Settings - 笔记阅读模式 */}
+        <View className="mx-5 mt-4">
+          <Text className="text-sm text-muted mb-3 ml-1">笔记阅读样式</Text>
+          <View className="bg-white rounded-2xl overflow-hidden shadow-sm"
+            style={{
+              shadowColor: '#4F46E5',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 8,
+              elevation: 2,
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => handleNoteEditUiChange('new')}
+              className="flex-row items-center px-5 py-4 border-b border-gray-100"
+            >
+              <View className="w-10 h-10 rounded-xl bg-blue-50 items-center justify-center">
+                <FontAwesome6 name="book-bookmark" size={16} color="#3B82F6" />
+              </View>
+              <View className="flex-1 ml-3">
+                <Text className="font-medium text-foreground">新版（小红书风格）</Text>
+                <Text className="text-xs text-muted mt-0.5">顶部图片轮播 + 标题 + 内容</Text>
+              </View>
+              {noteEditUi === 'new' && <FontAwesome6 name="circle-check" size={20} color="#4F46E5" />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => handleNoteEditUiChange('old')}
+              className="flex-row items-center px-5 py-4"
+            >
+              <View className="w-10 h-10 rounded-xl bg-orange-50 items-center justify-center">
+                <FontAwesome6 name="rectangle-list" size={16} color="#F97316" />
+              </View>
+              <View className="flex-1 ml-3">
+                <Text className="font-medium text-foreground">旧版</Text>
+                <Text className="text-xs text-muted mt-0.5">标题卡片 + 内容卡片</Text>
+              </View>
+              {noteEditUi === 'old' && <FontAwesome6 name="circle-check" size={20} color="#4F46E5" />}
             </TouchableOpacity>
           </View>
         </View>
