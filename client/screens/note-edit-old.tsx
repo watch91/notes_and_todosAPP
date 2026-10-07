@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, Alert, Image, Linking, FlatList, Dimensions } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, Alert, Image, Linking } from 'react-native';
 import { FontAwesome6 } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -94,9 +94,6 @@ export default function NoteEditPage() {
   const [noteInfoModalVisible, setNoteInfoModalVisible] = useState(false);
   const [noteCreatedAt, setNoteCreatedAt] = useState<string>('');
   const [noteUpdatedAt, setNoteUpdatedAt] = useState<string>('');
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const flatListRef = useRef<FlatList<Picture>>(null);
-  const screenWidth = Dimensions.get('window').width;
 
   const isEditing = !!params.id;
 
@@ -667,188 +664,20 @@ export default function NoteEditPage() {
           )}
         </View>
 
-        {isReadOnly && isEditing ? (
-          // ========== 阅读模式：小红书风格 ==========
-          <ScrollView
-            className="flex-1 bg-white"
-            showsVerticalScrollIndicator={false}
+        <ScrollView className="flex-1 px-5 py-4" showsVerticalScrollIndicator={false}>
+          {/* Title */}
+          <View className="bg-white rounded-2xl p-4 mb-4"
+            style={{
+              shadowColor: '#4F46E5',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+              elevation: 2,
+            }}
           >
-            {/* 顶部图片轮播 Banner（无图片时整块不渲染） */}
-            {pictures.length > 0 && (
-              <View style={{ width: screenWidth, height: screenWidth, backgroundColor: '#000' }}>
-                <FlatList
-                  ref={flatListRef}
-                  data={pictures}
-                  keyExtractor={(item) => String(item.id)}
-                  horizontal
-                  pagingEnabled
-                  showsHorizontalScrollIndicator={false}
-                  onMomentumScrollEnd={(e) => {
-                    const idx = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
-                    setActiveImageIndex(idx);
-                  }}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity
-                      activeOpacity={0.95}
-                      onPress={() => setFullscreenImage(item.image_url)}
-                      style={{ width: screenWidth, height: screenWidth }}
-                    >
-                      <Image
-                        source={{ uri: item.image_url }}
-                        style={{ width: screenWidth, height: screenWidth }}
-                        resizeMode="cover"
-                      />
-                    </TouchableOpacity>
-                  )}
-                />
-                {/* 图片指示器（小红书风格小红点） */}
-                {pictures.length > 1 && (
-                  <View className="absolute bottom-3 left-0 right-0 flex-row justify-center items-center">
-                    {pictures.map((_, idx) => (
-                      <View
-                        key={idx}
-                        className="mx-1 rounded-full"
-                        style={{
-                          width: idx === activeImageIndex ? 16 : 6,
-                          height: 6,
-                          backgroundColor: idx === activeImageIndex ? '#F43F5E' : 'rgba(255,255,255,0.6)',
-                        }}
-                      />
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            <View className="px-5 pt-5 pb-32 bg-white">
-              {/* 标题（图片下方） */}
-              <Text className="text-2xl font-bold text-foreground leading-8">
-                {title || '无标题'}
-              </Text>
-
-              {/* 标签（若有） */}
-              {labels.filter((l) => l !== null).length > 0 && (
-                <View className="flex-row flex-wrap mt-3">
-                  {labels.filter((l) => l !== null).map((labelId, index) => (
-                    <View
-                      key={index}
-                      className="flex-row items-center mr-2 mb-2 px-2.5 py-1 rounded-full"
-                      style={{ backgroundColor: LABEL_COLORS[labelId as number] + '20' }}
-                    >
-                      <View
-                        className="w-2 h-2 rounded-full mr-1.5"
-                        style={{ backgroundColor: LABEL_COLORS[labelId as number] }}
-                      />
-                      <Text
-                        className="text-xs"
-                        style={{ color: LABEL_COLORS[labelId as number] }}
-                      >
-                        {LABELS[labelId as number]}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {/* 正文 */}
-              <Text className="text-base text-foreground leading-7 mt-4 whitespace-pre-wrap">
-                {content ? renderTextWithLinks(content) : '无内容'}
-              </Text>
-
-              {/* 图片附件缩略图（轮播已展示，仅在多张时给出九宫格参考） */}
-              {pictures.length > 1 && (
-                <View className="mt-6 pt-5 border-t border-gray-100">
-                  <Text className="text-sm font-semibold text-gray-700 mb-3">
-                    图片附件 ({pictures.length})
-                  </Text>
-                  <View className="flex-row flex-wrap">
-                    {pictures.map((pic) => (
-                      <TouchableOpacity
-                        key={pic.id}
-                        onPress={() => setFullscreenImage(pic.image_url)}
-                        className="mr-2 mb-2"
-                      >
-                        <Image
-                          source={{ uri: pic.image_url }}
-                          style={{ width: 80, height: 80, borderRadius: 8 }}
-                          resizeMode="cover"
-                        />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              {/* 评论区 */}
-              <View className="mt-6 pt-5 border-t border-gray-100">
-                <Text className="text-base font-semibold text-foreground mb-3">
-                  共 {comments.length} 条评论
-                </Text>
-                {comments.length === 0 ? (
-                  <Text className="text-sm text-gray-400 py-3">还没有评论，来抢沙发吧</Text>
-                ) : (
-                  comments.map((comment) => (
-                    <View
-                      key={comment.id}
-                      className="flex-row items-start py-3 border-b border-gray-100"
-                    >
-                      <View className="w-8 h-8 rounded-full bg-gray-200 items-center justify-center mr-3">
-                        <FontAwesome6 name="user" size={12} color="#6B7280" />
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-xs text-gray-500 mb-1">
-                          {comment.user_name || `用户${comment.user_id || ''}`}
-                        </Text>
-                        <Text className="text-sm text-foreground leading-5">
-                          {comment.content}
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        onPress={() => handleDeleteComment(comment.id)}
-                        className="ml-2 p-1"
-                      >
-                        <FontAwesome6 name="trash" size={12} color="#EF4444" />
-                      </TouchableOpacity>
-                    </View>
-                  ))
-                )}
-              </View>
-            </View>
-
-            {/* 底部固定操作栏（小红书风格） */}
-            <View
-              className="absolute left-0 right-0 bottom-0 bg-white border-t border-gray-200 px-4 pt-2 pb-3 flex-row items-center"
-              style={{ paddingBottom: Platform.OS === 'ios' ? 24 : 12 }}
-            >
-              <TextInput
-                value={newComment}
-                onChangeText={setNewComment}
-                placeholder="说点什么..."
-                className="flex-1 bg-gray-100 rounded-full px-4 py-2.5 text-sm text-foreground"
-                placeholderTextColor="#9CA3AF"
-              />
-              <TouchableOpacity
-                onPress={handleAddComment}
-                disabled={commentLoading || !newComment.trim()}
-                className="ml-3 flex-row items-center"
-              >
-                <FontAwesome6 name="paper-plane" size={20} color="#3B82F6" />
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        ) : (
-          // ========== 编辑/新建模式：保留原结构 ==========
-          <ScrollView className="flex-1 px-5 py-4" showsVerticalScrollIndicator={false}>
-            {/* Title */}
-            <View className="bg-white rounded-2xl p-4 mb-4"
-              style={{
-                shadowColor: '#4F46E5',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.05,
-                shadowRadius: 8,
-                elevation: 2,
-              }}
-            >
+            {isReadOnly && isEditing ? (
+              <Text className="text-base font-medium text-foreground">{title || '无标题'}</Text>
+            ) : (
               <TextInput
                 value={title}
                 onChangeText={setTitle}
@@ -857,9 +686,11 @@ export default function NoteEditPage() {
                 className="text-base font-medium text-foreground"
                 style={{ outline: 'none' }}
               />
-            </View>
+            )}
+          </View>
 
-            {/* Labels - Only show in edit mode */}
+          {/* Labels - Only show in edit mode */}
+          {!isReadOnly && (
             <View className="bg-white rounded-2xl p-4 mb-4"
               style={{
                 shadowColor: '#4F46E5',
@@ -871,7 +702,7 @@ export default function NoteEditPage() {
             >
               <View className="flex-row items-center justify-between">
                 <Text className="text-sm font-medium text-gray-600">标签</Text>
-                {isAuthor && (
+                {!isReadOnly && isAuthor && (
                   <TouchableOpacity
                     onPress={() => setLabelModalVisible(true)}
                     className="flex-row items-center bg-indigo-100 px-3 py-1.5 rounded-full"
@@ -898,17 +729,21 @@ export default function NoteEditPage() {
                 </View>
               )}
             </View>
+          )}
 
-            {/* Content */}
-            <View className="bg-white rounded-2xl p-4 min-h-[300px]"
-              style={{
-                shadowColor: '#4F46E5',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.05,
-                shadowRadius: 8,
-                elevation: 2,
-              }}
-            >
+          {/* Content */}
+          <View className="bg-white rounded-2xl p-4 min-h-[300px]"
+            style={{
+              shadowColor: '#4F46E5',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+              elevation: 2,
+            }}
+          >
+            {isReadOnly && isEditing ? (
+              <Text className="text-base text-foreground whitespace-pre-wrap">{content ? renderTextWithLinks(content) : '无内容'}</Text>
+            ) : (
               <TextInput
                 value={content}
                 onChangeText={setContent}
@@ -919,72 +754,103 @@ export default function NoteEditPage() {
                 className="text-base text-foreground min-h-[280px]"
                 style={{ outline: 'none' }}
               />
-            </View>
-
-            {/* Pictures Section */}
-            {(pictures.length > 0 || (!isReadOnly && params.id)) && (
-              <View className="mt-4">
-                <Text className="text-base font-semibold text-foreground mb-3">图片附件 ({pictures.length})</Text>
-
-                {/* Picture Grid */}
-                {pictures.length > 0 && (
-                  <View className="flex-row flex-wrap">
-                    {pictures.map(pic => (
-                      <View key={pic.id} className="relative mr-2 mb-2">
-                        <TouchableOpacity
-                          onPress={() => isReadOnly && setFullscreenImage(pic.image_url)}
-                          disabled={!isReadOnly}
-                        >
-                          <Image
-                            source={{ uri: pic.image_url }}
-                            style={{ width: 100, height: 100, borderRadius: 8 }}
-                            resizeMode="cover"
-                          />
-                        </TouchableOpacity>
-                        {!isReadOnly && (
-                          <TouchableOpacity
-                            onPress={() => handleDeletePicture(pic)}
-                            className="absolute top-1 right-1 bg-red-500 rounded-full w-6 h-6 items-center justify-center"
-                          >
-                            <FontAwesome6 name="xmark" size={12} color="white" />
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                {/* Add Picture Buttons */}
-                {!isReadOnly && params.id && (
-                  <View className="flex-row mt-2">
-                    <TouchableOpacity
-                      onPress={handlePickImage}
-                      disabled={uploading}
-                      className="flex-row items-center bg-indigo-100 px-4 py-2 rounded-xl mr-2"
-                    >
-                      {uploading ? (
-                        <ActivityIndicator size="small" color="#4F46E5" />
-                      ) : (
-                        <FontAwesome6 name="image" size={16} color="#4F46E5" />
-                      )}
-                      <Text className="text-indigo-600 ml-2 text-sm font-medium">
-                        {uploading ? '上传中...' : '选择图片'}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={handleTakePhoto}
-                      disabled={uploading}
-                      className="flex-row items-center bg-indigo-100 px-4 py-2 rounded-xl"
-                    >
-                      <FontAwesome6 name="camera" size={16} color="#4F46E5" />
-                      <Text className="text-indigo-600 ml-2 text-sm font-medium">拍照</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
             )}
-          </ScrollView>
-        )}
+          </View>
+
+          {/* Pictures Section */}
+          {(pictures.length > 0 || (!isReadOnly && params.id)) && (
+            <View className="mt-4">
+              <Text className="text-base font-semibold text-foreground mb-3">图片附件 ({pictures.length})</Text>
+              
+              {/* Picture Grid */}
+              {pictures.length > 0 && (
+                <View className="flex-row flex-wrap">
+                  {pictures.map(pic => (
+                    <View key={pic.id} className="relative mr-2 mb-2">
+                      <TouchableOpacity
+                        onPress={() => isReadOnly && setFullscreenImage(pic.image_url)}
+                        disabled={!isReadOnly}
+                      >
+                        <Image
+                          source={{ uri: pic.image_url }}
+                          style={{ width: 100, height: 100, borderRadius: 8 }}
+                          resizeMode="cover"
+                        />
+                      </TouchableOpacity>
+                      {!isReadOnly && (
+                        <TouchableOpacity
+                          onPress={() => handleDeletePicture(pic)}
+                          className="absolute top-1 right-1 bg-red-500 rounded-full w-6 h-6 items-center justify-center"
+                        >
+                          <FontAwesome6 name="xmark" size={12} color="white" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Add Picture Buttons */}
+              {!isReadOnly && params.id && (
+                <View className="flex-row mt-2">
+                  <TouchableOpacity
+                    onPress={handlePickImage}
+                    disabled={uploading}
+                    className="flex-row items-center bg-indigo-100 px-4 py-2 rounded-xl mr-2"
+                  >
+                    {uploading ? (
+                      <ActivityIndicator size="small" color="#4F46E5" />
+                    ) : (
+                      <FontAwesome6 name="image" size={16} color="#4F46E5" />
+                    )}
+                    <Text className="text-indigo-600 ml-2 text-sm font-medium">
+                      {uploading ? '上传中...' : '选择图片'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleTakePhoto}
+                    disabled={uploading}
+                    className="flex-row items-center bg-indigo-100 px-4 py-2 rounded-xl"
+                  >
+                    <FontAwesome6 name="camera" size={16} color="#4F46E5" />
+                    <Text className="text-indigo-600 ml-2 text-sm font-medium">拍照</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* 评论区域 */}
+          {isReadOnly && isEditing && (
+            <View className="mt-4 px-1">
+              <Text className="text-base font-semibold text-foreground mb-3">评论 ({comments.length})</Text>
+              {comments.map(comment => (
+                <View key={comment.id} className="bg-white rounded-xl p-3 mb-2 flex-row items-center">
+                  <Text className="flex-1 text-sm text-foreground">{comment.content}</Text>
+                  <TouchableOpacity onPress={() => handleDeleteComment(comment.id)} className="ml-2">
+                    <FontAwesome6 name="trash" size={14} color="#EF4444" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <View className="flex-row items-center mt-3">
+                <TextInput
+                  value={newComment}
+                  onChangeText={setNewComment}
+                  placeholder="添加评论..."
+                  className="flex-1 bg-white rounded-xl px-4 py-2.5 text-sm text-foreground border border-gray-200"
+                  placeholderTextColor="#9CA3AF"
+                />
+                <TouchableOpacity
+                  onPress={handleAddComment}
+                  disabled={commentLoading || !newComment.trim()}
+                  className="ml-2 bg-indigo-500 px-4 py-2.5 rounded-xl"
+                >
+                  <Text className="text-white text-sm font-medium">发送</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </ScrollView>
 
         {/* AI Summary Modal */}
         <Modal visible={aiModalVisible} transparent animationType="fade">
