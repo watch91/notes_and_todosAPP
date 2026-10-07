@@ -370,8 +370,8 @@ export default function SettingsPage() {
                 <FontAwesome6 name="table-cells-large" size={16} color="#3B82F6" />
               </View>
               <View className="flex-1 ml-3">
-                <Text className="font-medium text-foreground">新版（小红书瀑布流）</Text>
-                <Text className="text-xs text-muted mt-0.5">双列错落卡片，随机推荐</Text>
+                <Text className="font-medium text-foreground">新版</Text>
+                <Text className="text-xs text-muted mt-0.5">更加现代的界面风格</Text>
               </View>
               {homeUi === 'new' && <FontAwesome6 name="circle-check" size={20} color="#4F46E5" />}
             </TouchableOpacity>
@@ -384,8 +384,8 @@ export default function SettingsPage() {
                 <FontAwesome6 name="list-ul" size={16} color="#F97316" />
               </View>
               <View className="flex-1 ml-3">
-                <Text className="font-medium text-foreground">旧版（合并列表）</Text>
-                <Text className="text-xs text-muted mt-0.5">笔记 + 待办合并的单列列表</Text>
+                <Text className="font-medium text-foreground">旧版</Text>
+                <Text className="text-xs text-muted mt-0.5">经典界面，怀旧情怀</Text>
               </View>
               {homeUi === 'old' && <FontAwesome6 name="circle-check" size={20} color="#4F46E5" />}
             </TouchableOpacity>
@@ -412,8 +412,8 @@ export default function SettingsPage() {
                 <FontAwesome6 name="book-bookmark" size={16} color="#3B82F6" />
               </View>
               <View className="flex-1 ml-3">
-                <Text className="font-medium text-foreground">新版（小红书风格）</Text>
-                <Text className="text-xs text-muted mt-0.5">顶部图片轮播 + 标题 + 内容</Text>
+                <Text className="font-medium text-foreground">新版</Text>
+                <Text className="text-xs text-muted mt-0.5">简约的阅读体验</Text>
               </View>
               {noteEditUi === 'new' && <FontAwesome6 name="circle-check" size={20} color="#4F46E5" />}
             </TouchableOpacity>
@@ -427,7 +427,7 @@ export default function SettingsPage() {
               </View>
               <View className="flex-1 ml-3">
                 <Text className="font-medium text-foreground">旧版</Text>
-                <Text className="text-xs text-muted mt-0.5">标题卡片 + 内容卡片</Text>
+                <Text className="text-xs text-muted mt-0.5">经典的阅读页面</Text>
               </View>
               {noteEditUi === 'old' && <FontAwesome6 name="circle-check" size={20} color="#4F46E5" />}
             </TouchableOpacity>
