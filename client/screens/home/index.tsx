@@ -49,7 +49,6 @@ interface MasonryItem {
   title: string;
   content: string;
   images: string[];
-  cover_url?: string | null;
   aspectRatio: number;
   label_1?: number | null;
   author_name: string;
@@ -127,11 +126,45 @@ interface NoteCardProps {
   onPress: (item: MasonryItem) => void;
 }
 
+/**
+ * 单卡片组件：渲染时直接去 pictures 表查询当前笔记的封面附件。
+ * - 若 pictures 表中存在 note_id = note.id 的记录，取最新一行（接口已按 id DESC 排序）的 image_url 作为封面
+ * - 若不存在，使用本地静态风景图兜底
+ */
 function NoteCard({ item, columnWidth, onPress }: NoteCardProps) {
   const imgHeight = columnWidth / item.aspectRatio;
-  // 优先用后端返回的封面（pictures 表的第一张附件），否则从静态兜底池中按 id 稳定选取
-  const remoteCover = item.cover_url && item.cover_url.trim().length > 0 ? item.cover_url : null;
-  const coverUri = remoteCover ? { uri: remoteCover } : pickFallbackCover(item.id);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [coverLoaded, setCoverLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchCover = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/pictures/note/${item.id}`);
+        const json = await res.json();
+        const list = Array.isArray(json?.data) ? json.data : [];
+        // 接口已按 created_at ASC 排序，取最新一行（最后一张）
+        const latest = list[list.length - 1];
+        if (!cancelled) {
+          setCoverUrl(latest?.image_url ?? null);
+          setCoverLoaded(true);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setCoverUrl(null);
+          setCoverLoaded(true);
+        }
+      }
+    };
+    fetchCover();
+    return () => {
+      cancelled = true;
+    };
+  }, [item.id]);
+
+  // 封面优先级：pictures 表查询到的真实附件 → 本地静态兜底池（保证不空白）
+  const remoteCover = coverUrl && coverUrl.trim().length > 0 ? coverUrl : null;
+  const coverSource = remoteCover ? { uri: remoteCover } : pickFallbackCover(item.id);
   return (
     <TouchableOpacity
       activeOpacity={0.85}
@@ -146,9 +179,9 @@ function NoteCard({ item, columnWidth, onPress }: NoteCardProps) {
       }}
     >
       <View style={{ width: columnWidth, height: imgHeight, backgroundColor: '#F1F5F9' }}>
-        {coverUri ? (
+        {coverLoaded && coverSource ? (
           <Image
-            source={coverUri}
+            source={coverSource}
             style={{ width: '100%', height: '100%' }}
             contentFit="cover"
             transition={200}
