@@ -11,6 +11,7 @@ interface StarWisdomCache {
 }
 
 const CACHE_KEY = '@starry_wisdom_cache';
+const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
 // 星空背景（纯代码实现）
 const StarryBackground = () => (
@@ -70,7 +71,7 @@ export default function StarryWisdomScreen() {
   // 调用AI生成星语
   const fetchStarWisdom = async (): Promise<string> => {
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/llm/chat`, {
+      const response = await fetch(`${API_BASE}/api/v1/llm/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

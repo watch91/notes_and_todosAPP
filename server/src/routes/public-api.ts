@@ -43,34 +43,6 @@ router.get('/notes', validateApiKey, async (req: any, res: any) => {
   }
 });
 
-// 获取单个笔记（公开 API）
-router.get('/notes/:id', validateApiKey, async (req: any, res: any) => {
-  try {
-    const { id } = req.params;
-    const client = getSupabaseClient();
-    const { data, error } = await client
-      .from('notes')
-      .select('id, title, content, updated_at')
-      .eq('id', id)
-      .maybeSingle();
-    
-    if (error) throw new Error(`查询失败: ${error.message}`);
-    
-    if (!data) {
-      return res.status(404).json({ success: false, error: 'Note not found' });
-    }
-    
-    res.json({ 
-      success: true, 
-      data,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error: any) {
-    console.error('Error fetching public note:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
 // 搜索笔记（公开 API）
 router.get('/notes/search', validateApiKey, async (req: any, res: any) => {
   try {
@@ -98,6 +70,34 @@ router.get('/notes/search', validateApiKey, async (req: any, res: any) => {
     });
   } catch (error: any) {
     console.error('Error searching public notes:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 获取单个笔记（公开 API）
+router.get('/notes/:id', validateApiKey, async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    const client = getSupabaseClient();
+    const { data, error } = await client
+      .from('notes')
+      .select('id, title, content, updated_at')
+      .eq('id', id)
+      .maybeSingle();
+    
+    if (error) throw new Error(`查询失败: ${error.message}`);
+    
+    if (!data) {
+      return res.status(404).json({ success: false, error: 'Note not found' });
+    }
+    
+    res.json({ 
+      success: true, 
+      data,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('Error fetching public note:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

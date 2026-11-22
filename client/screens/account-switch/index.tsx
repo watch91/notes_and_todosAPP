@@ -21,7 +21,7 @@ interface SavedAccount {
 }
 
 const ACCOUNTS_STORAGE_KEY = 'aiostation_accounts';
-const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || '';
+const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
 export default function AccountSwitchScreen() {
   const router = useSafeRouter();
