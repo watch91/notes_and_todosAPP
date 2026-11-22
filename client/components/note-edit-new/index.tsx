@@ -7,8 +7,8 @@ import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { logger } from '@/utils/logger';
 import { createFormDataFile } from '@/utils';
+import { API_BASE } from '@/utils/api';
 
-const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 const DEEPSEEK_API_KEY = 'sk-5034bff7138d409dbf94f94c1be9440e';
 
 // 标签对应关系（按照 assets/标签对应关系.txt）

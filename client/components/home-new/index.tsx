@@ -7,6 +7,7 @@ import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '@/utils/logger';
+import { API_BASE } from '@/utils/api';
 
 // 静态兜底封面池（从 picture/ 目录复制而来）
 const FALLBACK_COVERS: number[] = [
@@ -25,8 +26,6 @@ function pickFallbackCover(noteId: number): number {
   const stableSeed = (noteId * 9301 + 49297) % 233280;
   return FALLBACK_COVERS[stableSeed % FALLBACK_COVERS.length];
 }
-
-const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
 // 屏蔽关键词（与旧首页保持一致）
 const BLOCK_KEYWORDS = ['更新公告', 'test', '公告'];

@@ -4,8 +4,7 @@ import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { DateTimePickerModal } from '@/components/DateTimePickerModal';
-
-const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
+import { API_BASE } from '@/utils/api';
 
 export default function TodoEditPage() {
   const router = useSafeRouter();

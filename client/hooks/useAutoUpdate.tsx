@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
 import { Alert, Linking } from 'react-native';
 import { APP_VERSION } from '@/utils/version';
-
-const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
+import { API_BASE } from '@/utils/api';
 
 const compareVersions = (a: string, b: string): boolean => {
   const aParts = a.split('.').map(Number);

@@ -6,8 +6,7 @@ import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '@/utils/logger';
-
-const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
+import { API_BASE } from '@/utils/api';
 
 // 屏蔽关键词
 const BLOCK_KEYWORDS = ['更新公告', 'test','公告'];

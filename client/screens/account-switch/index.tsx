@@ -13,6 +13,7 @@ import storage from '@/utils/secureStorage';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { decrypt } from '@/utils/crypto';
 import { Screen } from '@/components/Screen';
+import { API_BASE } from '@/utils/api';
 
 interface SavedAccount {
   userId: string;
@@ -21,7 +22,6 @@ interface SavedAccount {
 }
 
 const ACCOUNTS_STORAGE_KEY = 'aiostation_accounts';
-const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
 export default function AccountSwitchScreen() {
   const router = useSafeRouter();
@@ -58,7 +58,7 @@ export default function AccountSwitchScreen() {
         // 接口：POST /api/v1/auth/login
         // Body 参数：user_id: string, password: string
         const password = decrypt(account.encryptedPassword);
-        const response = await fetch(`${EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/auth/login`, {
+        const response = await fetch(`${API_BASE}/api/v1/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_id: account.userId, password }),

@@ -8,8 +8,8 @@ import storage from '@/utils/secureStorage';
 import { logger } from '@/utils/logger';
 import { encrypt, decrypt } from '@/utils/crypto';
 import Toast from 'react-native-toast-message';
+import { API_BASE } from '@/utils/api';
 
-const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 const ACCOUNTS_STORAGE_KEY = 'aiostation_accounts';
 
 interface SavedAccount {

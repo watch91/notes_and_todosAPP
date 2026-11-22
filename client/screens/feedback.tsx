@@ -3,8 +3,7 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Switch } from 'react-native';
 import { router } from 'expo-router';
 import { logger } from '@/utils/logger';
-
-const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
+import { API_BASE } from '@/utils/api';
 
 export default function FeedbackPage() {
   const [content, setContent] = useState('');
@@ -30,7 +29,7 @@ export default function FeedbackPage() {
         }
       }
 
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/feedback`, {
+      const response = await fetch(`${API_BASE}/api/v1/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: feedbackContent }),

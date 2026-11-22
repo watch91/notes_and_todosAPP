@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Screen } from '@/components/Screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
+import { API_BASE } from '@/utils/api';
 
 interface StarWisdomCache {
   quote: string;
@@ -11,7 +12,6 @@ interface StarWisdomCache {
 }
 
 const CACHE_KEY = '@starry_wisdom_cache';
-const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
 // 星空背景（纯代码实现）
 const StarryBackground = () => (

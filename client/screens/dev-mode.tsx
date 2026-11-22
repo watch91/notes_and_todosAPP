@@ -6,8 +6,7 @@ import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '@/utils/logger';
-
-const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
+import { API_BASE } from '@/utils/api';
 
 type ConfigKey = 'download_url' | 'new_version' | 'Version_beta_testing' | 'beta_version_download_URL' | 'version_suffix';
 
@@ -23,7 +22,7 @@ export default function DevModePage() {
 
   const loadConfig = async (key: ConfigKey) => {
     try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/version`);
+      const response = await fetch(`${API_BASE}/api/v1/version`);
       const data = await response.json();
       return data[key] || '';
     } catch {
@@ -34,7 +33,7 @@ export default function DevModePage() {
   const saveConfig = async (key: ConfigKey, value: string) => {
     setLoading(true);
     try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/version`, {
+      const response = await fetch(`${API_BASE}/api/v1/version`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [key]: value }),
@@ -121,7 +120,7 @@ export default function DevModePage() {
                * Body 参数：无
                * 返回：{ success: boolean, inserted: number, topics: string[] }
                */
-              const response = await fetch(`${EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/daily-notes/trigger`, {
+              const response = await fetch(`${API_BASE}/api/v1/daily-notes/trigger`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
               });

@@ -3,6 +3,11 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 const appName = process.env.COZE_PROJECT_NAME || process.env.EXPO_PUBLIC_COZE_PROJECT_NAME || '应用';
 const projectId = process.env.COZE_PROJECT_ID || process.env.EXPO_PUBLIC_COZE_PROJECT_ID;
 const slugAppName = projectId ? `app${projectId}` : 'myapp';
+const backendBaseUrl = (
+  process.env.EXPO_PUBLIC_BACKEND_BASE_URL
+  || process.env.COZE_PROJECT_DOMAIN_DEFAULT
+  || process.env.EXPO_PUBLIC_COZE_PROJECT_DOMAIN_DEFAULT
+)?.trim();
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {
@@ -35,8 +40,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     "plugins": [
       [
         "expo-router",
-        process.env.EXPO_PUBLIC_BACKEND_BASE_URL
-          ? { "origin": process.env.EXPO_PUBLIC_BACKEND_BASE_URL }
+        backendBaseUrl
+          ? { "origin": backendBaseUrl }
           : {}
       ],
       [
@@ -73,6 +78,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      ...config.extra,
+      backendBaseUrl
     }
   }
 }

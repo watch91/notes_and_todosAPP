@@ -5,8 +5,7 @@ import { Screen } from '@/components/Screen';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import * as FileSystem from 'expo-file-system/legacy';
-
-const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
+import { API_BASE } from '@/utils/api';
 
 export default function VoiceRecordScreen() {
   const router = useSafeRouter();
@@ -147,7 +146,7 @@ export default function VoiceRecordScreen() {
 
       // 上传到后端进行语音识别
       console.log('开始上传录音到后端...');
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/voice/transcribe`, {
+      const response = await fetch(`${API_BASE}/api/v1/voice/transcribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

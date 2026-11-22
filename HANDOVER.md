@@ -378,3 +378,53 @@ A  assets/*.png (6 个)                         # ⚠️ 非本次改动（用�
 3. `.env` 烘焙了开发机的过期 IP `9.128.78.52:9091`（端口也与生产的 5000 不符）→ App 端所有请求打向一个不存在的地址。
 
 **最关键的下一步**：把 `.env` 里的 IP 换成平台真实域名 → 重新导出 Expo Web 产物 → 重新部署。
+
+---
+
+## 八、2026-11-22 后续修复记录
+
+本次已继续完成连接问题修复，当前状态：**源码修复完成，生产模式本地冒烟通过**。
+
+### 新增根因
+
+1. 客户端虽然统一使用了环境变量，但 Web 构建仍会继承写死的开发机地址；部署域名变化后必然断连。
+2. `server/src/index.ts` 在调用 `app.listen()` 前同步加载全部路由和 SDK，增加了平台 30 秒健康检查窗口内的启动风险。
+3. `server/src/routes/auth.ts` 在模块加载阶段创建 Supabase 客户端；凭据缺失或环境初始化缓慢时，会影响服务启动。
+
+### 本次改动
+
+- 新增 `client/utils/api.ts`，统一 API 地址：
+  - Web 始终使用 `window.location.origin`，与 Express 同源。
+  - 原生包使用平台注入域名或 `EXPO_PUBLIC_BACKEND_BASE_URL`。
+  - 本地开发最终回退到 `http://localhost:9091`。
+- 所有客户端 API 调用改为引用统一的 `API_BASE`，不再各自读取环境变量。
+- `.env` 删除失效 IP，不再把某台开发机地址编译进生产包。
+- `client/app.config.ts` 支持将部署域名写入 `extra.backendBaseUrl`，供原生包使用。
+- 后端先监听 `HOST:PORT`，再异步并行注册路由；单个路由失败不会阻塞健康检查和其他路由。
+- 后端增加端口错误、SIGTERM/SIGINT 日志与优雅退出。
+- 认证路由改为请求时按需创建 Supabase 客户端，不再阻塞启动。
+
+### 本次验证
+
+```text
+server build                通过
+server tsc                  通过
+client eslint               通过
+Expo Web export             通过
+GET /api/v1/health          200 {"status":"ok"}
+GET /                        200 text/html
+GET /some/deep/link          200 text/html
+GET /api/v1/nonexistent      404（未被 SPA 接管）
+导出 Web 包含旧 IP            否
+```
+
+客户端 `tsc` 仍会报告仓库原有的 `outline` 样式、`NodeJS.Timeout` 和 `Buffer` 类型错误；这些与本次连接修复无关。
+
+### 部署注意
+
+- Web 端无需填写域名，会自动跟随当前部署域名。
+- 如发布独立 Android/iOS 包，构建环境必须注入真实部署域名，例如：
+
+```env
+EXPO_PUBLIC_BACKEND_BASE_URL=https://实际部署域名
+```

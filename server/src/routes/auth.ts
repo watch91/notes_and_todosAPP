@@ -3,14 +3,14 @@ import { getSupabaseClient } from '../storage/database/supabase-client.js';
 import bcrypt from 'bcryptjs';
 
 const router = express.Router();
-const supabase = getSupabaseClient();
+const getAuthClient = () => getSupabaseClient();
 
 // 生成8位唯一用户ID
 const generateUserId = async (): Promise<string> => {
   const maxAttempts = 100;
   for (let i = 0; i < maxAttempts; i++) {
     const userId = Math.floor(Math.random() * 100000000).toString().padStart(8, '0');
-    const { data } = await supabase
+    const { data } = await getAuthClient()
       .from('users')
       .select('user_id')
       .eq('user_id', userId)
@@ -41,7 +41,7 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
     
     // 插入用户
-    const { data, error } = await supabase
+    const { data, error } = await getAuthClient()
       .from('users')
       .insert({ user_id, user_name, password: hashedPassword })
       .select()
@@ -77,7 +77,7 @@ router.post('/login', async (req, res) => {
     }
     
     // 查找用户
-    const { data: user, error } = await supabase
+    const { data: user, error } = await getAuthClient()
       .from('users')
       .select('*')
       .eq('user_id', user_id)
@@ -114,7 +114,7 @@ router.get('/me', async (req, res) => {
       return res.status(401).json({ error: '未登录' });
     }
 
-    const { data: user, error } = await supabase
+    const { data: user, error } = await getAuthClient()
       .from('users')
       .select('user_id, user_name')
       .eq('user_id', userId)
